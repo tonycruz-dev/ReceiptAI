@@ -100,6 +100,4 @@ Dockerfile*
 
 # Tooling caches
 **/.cache/
-AdminApi/appsettings.json
-StoreApp.Api/appsettings.json
-/ReceiptDemo.API/appsettings.json
+ReceiptAI.API/appsettings.json
