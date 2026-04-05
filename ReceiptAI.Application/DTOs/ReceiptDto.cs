@@ -1,0 +1,13 @@
+﻿namespace ReceiptAI.Application.DTOs;
+
+public class ReceiptDto
+{
+	public Guid Id { get; set; }
+	public string MerchantName { get; set; } = string.Empty;
+	public DateTime PurchaseDate { get; set; }
+	public decimal TotalAmount { get; set; }
+	public string Currency { get; set; } = string.Empty;
+	public string Category { get; set; } = string.Empty;
+	public string ImageUrl { get; set; } = string.Empty;
+	public DateTime CreatedAt { get; set; }
+}
