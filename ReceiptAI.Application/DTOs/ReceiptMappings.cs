@@ -1,4 +1,6 @@
-﻿namespace ReceiptAI.Application.DTOs;
+﻿using ReceiptAI.Domain.Entities;
+
+namespace ReceiptAI.Application.DTOs;
 
 public static class ReceiptMappings
 {

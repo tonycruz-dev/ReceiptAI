@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-
-namespace ReceiptAI.Application.DTOs;
+﻿namespace ReceiptAI.Application.DTOs;
 
 public class CreateReceiptRequest
 {

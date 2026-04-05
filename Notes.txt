@@ -1,0 +1,4 @@
+Migration CMD:
+Add-Migration InitialCreate -Project ReceiptAI.Infrastructure -StartupProject ReceiptAI.API
+
+Update-Database -Project ReceiptAI.Infrastructure -StartupProject ReceiptAI.API

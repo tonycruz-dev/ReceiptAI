@@ -1,10 +1,10 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
+﻿using ReceiptAI.Domain.Entities;
 
-namespace ReceiptAI.Application.Interfaces
+namespace ReceiptAI.Application.Interfaces;
+
+public interface IReceiptRepository
 {
-	internal interface IReceiptRepository
-	{
-	}
+	Task<List<Receipt>> GetAllAsync(CancellationToken cancellationToken = default);
+	Task<Receipt?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default);
+	Task AddAsync(Receipt receipt, CancellationToken cancellationToken = default);
 }

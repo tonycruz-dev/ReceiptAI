@@ -6,4 +6,8 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\ReceiptAI.Domain\ReceiptAI.Domain.csproj" />
+  </ItemGroup>
+
 </Project>

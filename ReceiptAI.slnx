@@ -1,1 +1,9 @@
-<Solution />
+<Solution>
+  <Folder Name="/Solution Items/">
+    <File Path="Notes.txt" />
+  </Folder>
+  <Project Path="ReceiptAI.API/ReceiptAI.API.csproj" Id="80b0dd3f-ec4c-4753-95ab-9675037a7495" />
+  <Project Path="ReceiptAI.Application/ReceiptAI.Application.csproj" Id="b22a47cf-c9bc-430f-84ca-0811bd9af419" />
+  <Project Path="ReceiptAI.Domain/ReceiptAI.Domain.csproj" Id="f7d12485-a1aa-46fe-8a0c-acf0059efa0a" />
+  <Project Path="ReceiptAI.Infrastructure/ReceiptAI.Infrastructure.csproj" Id="346a98fd-0732-4ce8-80b1-47982324a20c" />
+</Solution>

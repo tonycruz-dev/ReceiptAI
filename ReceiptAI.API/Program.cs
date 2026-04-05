@@ -1,8 +1,11 @@
+using Scalar.AspNetCore;
+using ReceiptAI.Infrastructure;
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 
 builder.Services.AddControllers();
+builder.Services.AddInfrastructure(builder.Configuration);
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
 
@@ -13,6 +16,13 @@ if (app.Environment.IsDevelopment())
 {
 	app.MapOpenApi();
 }
+
+app.MapScalarApiReference(options =>
+{
+	options
+		.WithTitle("ReceiptAI API")
+		.WithTheme(ScalarTheme.DeepSpace); // Optional theme
+});
 
 app.UseHttpsRedirection();
 

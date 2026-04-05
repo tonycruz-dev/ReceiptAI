@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-
-namespace ReceiptAI.Domain.Entities;
+﻿namespace ReceiptAI.Domain.Entities;
 
 public class Receipt
 {
