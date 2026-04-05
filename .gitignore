@@ -1,0 +1,105 @@
+# Visual Studio
+.vs/
+*.user
+*.userosscache
+*.suo
+*.sln.docstates
+
+# Build results
+[Dd]ebug/
+[Rr]elease/
+x64/
+x86/
+build/
+[Bb]in/
+[Oo]bj/
+[Ll]og/
+
+# Visual Studio Code
+.vscode/
+*.code-workspace
+
+# Rider
+.idea/
+*.shelf/
+
+# NuGet
+*.nupkg
+*.snupkg
+# Packages folder can be ignored because of PackageReference
+**/[Pp]ackages/*
+!**/[Pp]ackages/build/
+!**/[Pp]ackages/repositories.config
+
+# Azure Functions local settings
+local.settings.json
+
+# ASP.NET Scaffolding
+ScaffoldingReadMe.txt
+
+# Test results
+[Tt]est[Rr]esult*/
+*.trx
+
+# Coverage
+coverage*
+*.coverage
+*.coveragexml
+TestResults/
+
+# Publish
+publish/
+app.publish/
+
+# TFM-specific and intermediate
+project.lock.json
+project.fragment.lock.json
+artifacts/
+
+# Resharper
+_ReSharper*/
+*.[Rr]e[Ss]harper
+
+# DotCover
+*.dotCover
+
+# DotTrace
+*.dotTrace
+
+# StyleCop
+StyleCopReport.xml
+
+# NCrunch
+_NCrunch_*/
+.*crunch*.local.xml
+
+# DocFX
+_site/
+
+# Logs
+*.log
+
+# macOS
+.DS_Store
+
+# Windows
+Thumbs.db
+ehthumbs.db
+[Dd]esktop.ini
+$RECYCLE.BIN/
+
+# Node (if any frontend assets)
+node_modules/
+
+# Containers/Orchestration
+*.dockerfile
+Dockerfile*
+.dockerignore
+**/.kube/
+**/charts/
+
+# Tooling caches
+**/.cache/
+AdminApi/appsettings.json
+StoreApp.Api/appsettings.json
+/ReceiptDemo.API/appsettings.json
