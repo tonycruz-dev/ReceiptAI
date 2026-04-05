@@ -7,5 +7,6 @@ public class CreateReceiptRequest
 	public decimal TotalAmount { get; set; }
 	public string Currency { get; set; } = "GBP";
 	public string Category { get; set; } = "Other";
+	public string ImagePublicId { get; set; } = string.Empty;
 	public string ImageUrl { get; set; } = string.Empty;
 }

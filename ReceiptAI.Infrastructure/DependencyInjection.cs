@@ -2,6 +2,7 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using ReceiptAI.Application.Interfaces;
+using ReceiptAI.Infrastructure.Integrations;
 using ReceiptAI.Infrastructure.Persistence;
 using ReceiptAI.Infrastructure.Repositories;
 
@@ -14,7 +15,10 @@ public static class DependencyInjection
 		services.AddDbContext<ApplicationDbContext>(options =>
 			options.UseSqlServer(configuration.GetConnectionString("DefaultConnection")));
 
+		services.Configure<CloudinarySettings>(configuration.GetSection("Cloudinary"));
+
 		services.AddScoped<IReceiptRepository, ReceiptRepository>();
+		services.AddScoped<IImageService, ImageService>();
 
 		return services;
 	}

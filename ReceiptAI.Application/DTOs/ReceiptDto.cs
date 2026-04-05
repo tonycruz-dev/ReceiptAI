@@ -9,5 +9,6 @@ public class ReceiptDto
 	public string Currency { get; set; } = string.Empty;
 	public string Category { get; set; } = string.Empty;
 	public string ImageUrl { get; set; } = string.Empty;
+	public string ImagePublicId { get; set; } = string.Empty;
 	public DateTime CreatedAt { get; set; }
 }

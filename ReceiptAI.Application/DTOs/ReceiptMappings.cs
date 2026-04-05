@@ -15,6 +15,7 @@ public static class ReceiptMappings
 			Currency = receipt.Currency,
 			Category = receipt.Category,
 			ImageUrl = receipt.ImageUrl,
+			ImagePublicId = receipt.ImagePublicId,
 			CreatedAt = receipt.CreatedAt
 		};
 	}
