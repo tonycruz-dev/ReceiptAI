@@ -19,6 +19,7 @@ public static class DependencyInjection
 
 		services.AddScoped<IReceiptRepository, ReceiptRepository>();
 		services.AddScoped<IImageService, ImageService>();
+		services.AddScoped<IReceiptAiService, GroqReceiptAiService>();
 
 		return services;
 	}

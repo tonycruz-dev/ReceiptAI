@@ -7,10 +7,14 @@ namespace ReceiptAI.API.Controllers;
 
 [Route("api/[controller]")]
 [ApiController]
-public class ReceiptsController(IReceiptRepository receiptRepository, IImageService imageService) : ControllerBase
+public class ReceiptsController(
+IReceiptRepository receiptRepository, 
+IImageService imageService, 
+IReceiptAiService receiptAiService) : ControllerBase
 {
 	private readonly IReceiptRepository _receiptRepository = receiptRepository;
 	private readonly IImageService _imageService = imageService;
+	private readonly IReceiptAiService _receiptAiService = receiptAiService;
 
 	[HttpPost("upload-image")]
 	public async Task<ActionResult<ImageUploadResultDto>> UploadImage(IFormFile file, CancellationToken cancellationToken)
@@ -101,6 +105,29 @@ public class ReceiptsController(IReceiptRepository receiptRepository, IImageServ
 			ImagePublicId = receipt.ImagePublicId,
 			CreatedAt = receipt.CreatedAt
 		};
+
+		return Ok(result);
+	}
+
+
+	[HttpPost("extract")]
+	public async Task<ActionResult<ReceiptExtractionResultDto>> Extract(
+	[FromBody] ExtractReceiptRequest request,
+	CancellationToken cancellationToken)
+	{
+		if (string.IsNullOrWhiteSpace(request.ImageUrl))
+		{
+			return BadRequest("ImageUrl is required.");
+		}
+
+		var result = await _receiptAiService.ExtractReceiptAsync(
+			request.ImageUrl,
+			cancellationToken);
+
+		if (!string.IsNullOrWhiteSpace(result.ErrorMessage))
+		{
+			return BadRequest(result);
+		}
 
 		return Ok(result);
 	}
