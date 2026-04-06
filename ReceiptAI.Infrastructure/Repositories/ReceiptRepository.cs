@@ -27,4 +27,9 @@ public class ReceiptRepository(ApplicationDbContext context) : IReceiptRepositor
 		await _context.Receipts.AddAsync(receipt, cancellationToken);
 		await _context.SaveChangesAsync(cancellationToken);
 	}
+	public async Task DeleteAsync(Receipt receipt, CancellationToken cancellationToken = default)
+	{
+		_context.Receipts.Remove(receipt);
+		await _context.SaveChangesAsync(cancellationToken);
+	}
 }

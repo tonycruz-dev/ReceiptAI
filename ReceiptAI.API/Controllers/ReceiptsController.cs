@@ -131,4 +131,31 @@ IReceiptAiService receiptAiService) : ControllerBase
 
 		return Ok(result);
 	}
+
+	[HttpDelete("{id:guid}")]
+	public async Task<IActionResult> Delete(Guid id, CancellationToken cancellationToken)
+	{
+		var receipt = await _receiptRepository.GetByIdAsync(id, cancellationToken);
+
+		if (receipt is null)
+		{
+			return NotFound();
+		}
+
+		if (!string.IsNullOrWhiteSpace(receipt.ImagePublicId))
+		{
+			var imageDeleted = await _imageService.DeleteImageAsync(
+				receipt.ImagePublicId,
+				cancellationToken);
+
+			if (!imageDeleted)
+			{
+				return BadRequest("Failed to delete receipt image from storage.");
+			}
+		}
+
+		await _receiptRepository.DeleteAsync(receipt, cancellationToken);
+
+		return NoContent();
+	}
 }

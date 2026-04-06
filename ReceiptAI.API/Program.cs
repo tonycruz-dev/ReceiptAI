@@ -2,6 +2,17 @@ using Scalar.AspNetCore;
 using ReceiptAI.Infrastructure;
 var builder = WebApplication.CreateBuilder(args);
 
+builder.Services.AddCors(options =>
+{
+	options.AddPolicy("AllowFrontend", policy =>
+	{
+		policy
+			.WithOrigins("https://localhost:3000", "https://43pdr2fc-7134.uks1.devtunnels.ms")
+			.AllowAnyHeader()
+			.AllowAnyMethod();
+	});
+});
+
 // Add services to the container.
 
 builder.Services.AddControllers();
@@ -11,6 +22,7 @@ builder.Services.AddOpenApi();
 
 var app = builder.Build();
 
+app.UseCors("AllowFrontend");
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
