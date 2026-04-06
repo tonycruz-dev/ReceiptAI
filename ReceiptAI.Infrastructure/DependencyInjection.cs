@@ -17,6 +17,8 @@ public static class DependencyInjection
 
 		services.Configure<CloudinarySettings>(configuration.GetSection("Cloudinary"));
 
+		services.AddHttpClient<GroqReceiptAiService>();
+
 		services.AddScoped<IReceiptRepository, ReceiptRepository>();
 		services.AddScoped<IImageService, ImageService>();
 		services.AddScoped<IReceiptAiService, GroqReceiptAiService>();
