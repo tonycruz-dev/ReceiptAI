@@ -11,7 +11,7 @@ export type ReceiptDto = {
 };
 
 export type UploadReceiptImageResponse = {
-  imageUrl?: string;
+  url?: string;
   publicId?: string;
   errorMessage?: string;
 };

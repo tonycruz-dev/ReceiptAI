@@ -102,16 +102,16 @@ export default function UploadScreen() {
     try {
       const uploadResult = await uploadReceiptImage(fileUri);
 
-      if (!uploadResult.imageUrl || !uploadResult.publicId) {
+      if (!uploadResult.url || !uploadResult.publicId) {
         setMessage(uploadResult.errorMessage || "Image upload failed.");
         return;
       }
 
-      setImageUrl(uploadResult.imageUrl);
+      setImageUrl(uploadResult.url);
       setImagePublicId(uploadResult.publicId);
 
       const extraction = await extractReceiptData({
-        imageUrl: uploadResult.imageUrl,
+        imageUrl: uploadResult.url,
       });
 
       if (extraction.errorMessage) {

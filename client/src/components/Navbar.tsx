@@ -13,7 +13,7 @@ export default function Navbar() {
           to="/"
           className="text-lg font-bold tracking-tight text-slate-900"
         >
-          ReceiptDemo
+          Receipts powered by AI
         </Link>
 
         <nav className="flex items-center gap-6">
