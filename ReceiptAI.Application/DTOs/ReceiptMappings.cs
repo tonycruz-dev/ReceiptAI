@@ -4,19 +4,17 @@ namespace ReceiptAI.Application.DTOs;
 
 public static class ReceiptMappings
 {
-	public static ReceiptDto ToDto(this Receipt receipt)
+	public static ResponseReceiptDto ToDto(this Receipt receipt)
 	{
-		return new ReceiptDto
+		return new ResponseReceiptDto
 		{
 			Id = receipt.Id,
 			MerchantName = receipt.MerchantName,
-			PurchaseDate = receipt.PurchaseDate,
+			PurchaseDate = receipt.PurchaseDate.ToString("yyyy-MM-ddTHH:mm:ssZ"),
 			TotalAmount = receipt.TotalAmount,
 			Currency = receipt.Currency,
 			Category = receipt.Category,
-			ImageUrl = receipt.ImageUrl,
-			ImagePublicId = receipt.ImagePublicId,
-			CreatedAt = receipt.CreatedAt
+			ImageUrl = receipt.ImageUrl
 		};
 	}
 }

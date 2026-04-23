@@ -8,8 +8,8 @@ namespace ReceiptAI.API.Controllers;
 [Route("api/[controller]")]
 [ApiController]
 public class ReceiptsController(
-IReceiptRepository receiptRepository, 
-IImageService imageService, 
+IReceiptRepository receiptRepository,
+IImageService imageService,
 IReceiptAiService receiptAiService) : ControllerBase
 {
 	private readonly IReceiptRepository _receiptRepository = receiptRepository;
@@ -40,9 +40,7 @@ IReceiptAiService receiptAiService) : ControllerBase
 	}
 
 	[HttpPost]
-	public async Task<ActionResult<Guid>> Create(
-		[FromBody] CreateReceiptRequest request,
-		CancellationToken cancellationToken)
+	public async Task<ActionResult<Guid>> Create([FromBody] CreateReceiptForApiRequest request, CancellationToken cancellationToken)
 	{
 		var receipt = new Receipt
 		{
@@ -111,9 +109,7 @@ IReceiptAiService receiptAiService) : ControllerBase
 
 
 	[HttpPost("extract")]
-	public async Task<ActionResult<ReceiptExtractionResultDto>> Extract(
-	[FromBody] ExtractReceiptRequest request,
-	CancellationToken cancellationToken)
+	public async Task<ActionResult<ReceiptExtractionResultDto>> Extract([FromBody] ExtractReceiptRequest request, CancellationToken cancellationToken)
 	{
 		if (string.IsNullOrWhiteSpace(request.ImageUrl))
 		{
@@ -157,5 +153,117 @@ IReceiptAiService receiptAiService) : ControllerBase
 		await _receiptRepository.DeleteAsync(receipt, cancellationToken);
 
 		return NoContent();
+	}
+
+	[HttpGet("recent")]
+	public async Task<ActionResult<List<ResponseReceiptDto>>> GetRecent(int count, CancellationToken cancellationToken)
+	{
+		var receipts = await _receiptRepository.GetRecentReceiptsAsync(count, cancellationToken);
+
+		var result = receipts.Select(r => new ResponseReceiptDto
+		{
+			Id = r.Id,
+			MerchantName = r.MerchantName,
+			PurchaseDate = r.PurchaseDate.ToString("yyyy-MM-dd"),
+			TotalAmount = r.TotalAmount,
+			Currency = r.Currency,
+			Category = r.Category,
+			ImageUrl = r.ImageUrl,
+		}).ToList();
+
+		return Ok(result);
+	}
+	[HttpGet("category/{category}")]
+	public async Task<ActionResult<List<ResponseReceiptDto>>> GetByCategory(string category, CancellationToken cancellationToken)
+	{
+		var receipts = await _receiptRepository.GetReceiptsByCategoryAsync(category, cancellationToken);
+
+		var result = receipts.Select(r => new ResponseReceiptDto
+		{
+			Id = r.Id,
+			MerchantName = r.MerchantName,
+			PurchaseDate = r.PurchaseDate.ToString("yyyy-MM-dd"),
+			TotalAmount = r.TotalAmount,
+			Currency = r.Currency,
+			Category = r.Category,
+			ImageUrl = r.ImageUrl,
+		}).ToList();
+
+		return Ok(result);
+	}
+	[HttpGet("summary")]
+	public async Task<ActionResult<ReceiptSummaryDto>> GetSummary(CancellationToken cancellationToken)
+	{
+		var summary = await _receiptRepository.GetReceiptSummaryAsync(cancellationToken);
+
+		return Ok(summary);
+	}
+
+	//get receipts by date range
+	[HttpGet("date-range")]
+	public async Task<ActionResult<List<ResponseReceiptDto>>> GetByDateRange(string from, string to, CancellationToken cancellationToken)
+	{
+		if (!DateTime.TryParse(from, out var fromDate))
+			return BadRequest("Invalid 'from' date format. Use YYYY-MM-DD.");
+
+		if (!DateTime.TryParse(to, out var toDate))
+			return BadRequest("Invalid 'to' date format. Use YYYY-MM-DD.");
+
+		var receipts = await _receiptRepository.GetReceiptsByDateRangeAsync(fromDate, toDate, cancellationToken);
+
+		var result = receipts.Select(r => new ResponseReceiptDto
+		{
+			Id = r.Id,
+			MerchantName = r.MerchantName,
+			PurchaseDate = r.PurchaseDate.ToString("yyyy-MM-dd"),
+			TotalAmount = r.TotalAmount,
+			Currency = r.Currency,
+			Category = r.Category,
+			ImageUrl = r.ImageUrl,
+		}).ToList();
+
+		return Ok(result);
+	}
+	//GetReceiptsByDate
+	[HttpGet("receiptbydate:{date}")]
+	public async Task<ActionResult<List<ResponseReceiptDto>>> GetReceiptsByDate(string date, CancellationToken cancellationToken)
+	{
+		if (!DateTime.TryParse(date, out var targetDate))
+			return BadRequest("Invalid date format. Use YYYY-MM-DD.");
+
+		var receipts = await _receiptRepository.GetReceiptsByDateAsync(targetDate, cancellationToken);
+
+		var result = receipts.Select(r => new ResponseReceiptDto
+		{
+			Id = r.Id,
+			MerchantName = r.MerchantName,
+			PurchaseDate = r.PurchaseDate.ToString("yyyy-MM-dd"),
+			TotalAmount = r.TotalAmount,
+			Currency = r.Currency,
+			Category = r.Category,
+			ImageUrl = r.ImageUrl,
+		}).ToList();
+
+		return Ok(result);
+	}
+	//GetThisMonthReceipts
+	[HttpGet("this-month")]
+	public async Task<ActionResult<List<ResponseReceiptDto>>> GetThisMonthReceipts(CancellationToken cancellationToken)
+	{
+		var now = DateTime.UtcNow;
+		var firstDayOfMonth = new DateTime(now.Year, now.Month, 1);
+		var lastDayOfMonth = firstDayOfMonth.AddMonths(1).AddDays(-1);
+		var receipts = await _receiptRepository.GetReceiptsByDateRangeAsync(firstDayOfMonth, lastDayOfMonth, cancellationToken);
+		var result = receipts.Select(r => new ResponseReceiptDto
+		{
+			Id = r.Id,
+			MerchantName = r.MerchantName,
+			PurchaseDate = r.PurchaseDate.ToString("yyyy-MM-dd"),
+			TotalAmount = r.TotalAmount,
+			Currency = r.Currency,
+			Category = r.Category,
+			ImageUrl = r.ImageUrl,
+		}).ToList();
+		return Ok(result);
 	}
 }

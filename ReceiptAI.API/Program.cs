@@ -1,45 +1,58 @@
-using Scalar.AspNetCore;
 using ReceiptAI.Infrastructure;
+using ReceiptAI.Infrastructure.Mcp.Prompts;
+using ReceiptAI.Infrastructure.Mcp.Resources;
+using ReceiptAI.Infrastructure.Mcp.Tools;
+using Scalar.AspNetCore;
+
 var builder = WebApplication.CreateBuilder(args);
+
+builder.Services.AddControllers();
+builder.Services.AddInfrastructure(builder.Configuration);
+builder.Services.AddOpenApi();
+
+builder.Services
+	.AddMcpServer()
+	.WithHttpTransport(options =>
+	{
+		//options.EnableLegacySse = true;
+		options.Stateless = true;
+	})
+	.WithToolsFromAssembly(typeof(McpReceiptTool).Assembly)
+	.WithResources<McpReceiptResources>()
+	.WithPromptsFromAssembly(typeof(ReceiptPrompts).Assembly)
+	.WithPromptsFromAssembly(typeof(McpReceiptPrompts).Assembly);
+
 
 builder.Services.AddCors(options =>
 {
 	options.AddPolicy("AllowFrontend", policy =>
 	{
 		policy
-			.WithOrigins("https://localhost:3000", "https://43pdr2fc-7134.uks1.devtunnels.ms")
+			.WithOrigins("http://localhost:3000", "https://localhost:3000")
 			.AllowAnyHeader()
 			.AllowAnyMethod();
 	});
 });
-
-// Add services to the container.
-
-builder.Services.AddControllers();
-builder.Services.AddInfrastructure(builder.Configuration);
-// Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
-builder.Services.AddOpenApi();
-
 var app = builder.Build();
 
 app.UseCors("AllowFrontend");
-// Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
 	app.MapOpenApi();
 }
 
+app.MapMcp("/mcp");
+
 app.MapScalarApiReference(options =>
 {
-	options
-		.WithTitle("ReceiptAI API")
-		.WithTheme(ScalarTheme.DeepSpace); // Optional theme
+	options.WithTitle("ReceiptAI API")
+		   .WithTheme(ScalarTheme.DeepSpace);
 });
 
+// Temporarily disable while testing MCP locally
 app.UseHttpsRedirection();
 
 app.UseAuthorization();
-
 app.MapControllers();
 
 app.Run();
