@@ -67,6 +67,8 @@ Mcp/
 Migrations/
  20260405150929_InitialCreate.cs
  20260405150929_InitialCreate.Designer.cs
+ 20260423155153_EnforceReceiptFieldRequirements.cs
+ 20260423155153_EnforceReceiptFieldRequirements.Designer.cs
  ApplicationDbContextModelSnapshot.cs
 obj/Debug/net10.0/
  .NETCoreApp,Version=v10.0.AssemblyAttributes.cs

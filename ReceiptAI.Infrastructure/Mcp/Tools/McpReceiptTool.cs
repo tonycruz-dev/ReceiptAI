@@ -9,7 +9,7 @@ namespace ReceiptAI.Infrastructure.Mcp.Tools;
 [McpServerToolType]
 public class McpReceiptTool(
 IReceiptRepository receiptRepository, 
-IReceiptAiService _receiptAiService) 
+IReceiptExtractionService _receiptAiService) 
 {
 
 	[McpServerTool(UseStructuredContent = true, Name = "create_receipt_from_image")]
@@ -30,18 +30,14 @@ IReceiptAiService _receiptAiService)
 			throw new Exception(extraction.ErrorMessage);
 		}
 
-		var receipt = new Receipt
-		{
-			Id = Guid.NewGuid(),
-			MerchantName = extraction.MerchantName ?? string.Empty,
-			PurchaseDate = (extraction.PurchaseDate ?? DateTime.MinValue),
-			TotalAmount = (extraction.TotalAmount ?? 0),
-			Currency = extraction.Currency ?? string.Empty,
-			Category = extraction.Category ?? string.Empty,
-			ImageUrl = request.ImageUrl,
-			ImagePublicId = ExtractPublicId(request.ImageUrl),
-			CreatedAt = DateTime.UtcNow
-		};
+		var receipt = new Receipt(
+		extraction.MerchantName ?? string.Empty,
+		extraction.PurchaseDate ?? DateTime.MinValue,
+		extraction.TotalAmount ?? 0,
+		request.ImageUrl,
+		ExtractPublicId(request.ImageUrl),
+		extraction.Currency ?? string.Empty,
+		extraction.Category ?? string.Empty);
 
 		await receiptRepository.AddAsync(receipt, ct);
 
@@ -53,19 +49,14 @@ IReceiptAiService _receiptAiService)
 	[Description("Create a new receipt.")]
 	public async Task<ResponseReceiptDto> CreateReceiptAsync(CreateReceiptRequest request, CancellationToken ct = default)
 	{
-		var receipt = new Receipt
-		{
-			Id = Guid.NewGuid(),
-			MerchantName = request.MerchantName,
-			PurchaseDate = request.PurchaseDate,
-			TotalAmount = request.TotalAmount,
-			Currency = request.Currency,
-			Category = request.Category,
-			ImageUrl = request.ImageUrl,
-			ImagePublicId = ExtractPublicId(request.ImageUrl),
-			CreatedAt = DateTime.UtcNow
-		};
-
+		var receipt = new Receipt(
+		request.MerchantName ?? string.Empty,
+		request.PurchaseDate,
+		request.TotalAmount,
+		request.ImageUrl,
+		ExtractPublicId(request.ImageUrl),
+		request.Currency ?? string.Empty,
+		request.Category ?? string.Empty);
 		await receiptRepository.AddAsync(receipt, ct);
 
 		return receipt.ToDto();

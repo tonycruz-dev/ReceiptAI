@@ -3,6 +3,6 @@ Add-Migration InitialCreate -Project ReceiptAI.Infrastructure -StartupProject Re
 
 Update-Database -Project ReceiptAI.Infrastructure -StartupProject ReceiptAI.API
 
-npx @modelcontextprotocol/inspector dotnet run
+Add-Migration InitialCreate -Project ReceiptAI.Infrastructure -StartupProject ReceiptAI.API
 
-npx copilotkit@latest create Receipt-copilot
+npx @modelcontextprotocol/inspector dotnet run

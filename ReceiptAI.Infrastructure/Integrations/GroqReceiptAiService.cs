@@ -10,7 +10,7 @@ namespace ReceiptAI.Infrastructure.Integrations;
 
 public sealed class GroqReceiptAiService(
 	HttpClient httpClient,
-	IOptions<GroqSettings> options) : IReceiptAiService
+	IOptions<GroqSettings> options) : IReceiptExtractionService
 {
 	private readonly HttpClient _httpClient = httpClient;
 	private readonly GroqSettings _settings = options.Value;

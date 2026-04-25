@@ -2,7 +2,7 @@
 
 namespace ReceiptAI.Application.Interfaces;
 
-public interface IReceiptAiService
+public interface IReceiptExtractionService
 {
 	Task<ReceiptExtractionResultDto> ExtractReceiptAsync(
 		string imageUrl,

@@ -33,11 +33,11 @@ public class ReceiptRepository(ApplicationDbContext context) : IReceiptRepositor
 
 	public async Task<List<Receipt>> GetReceiptsByCategoryAsync(string category, CancellationToken cancellationToken = default)
 	{
-		//.Where(r => string.Equals(r.Category, category, StringComparison.OrdinalIgnoreCase))
+		
 		return await _context.Receipts
-			.Where(r => string.Equals(r.Category, category, StringComparison.OrdinalIgnoreCase))
-			.OrderByDescending(x => x.CreatedAt)
-			.ToListAsync(cancellationToken);
+		.Where(r => r.Category.ToLower() == category.ToLower())
+		.OrderByDescending(x => x.CreatedAt)
+		.ToListAsync(cancellationToken);
 	}
 
 	public async Task<ReceiptSummaryDto> GetReceiptSummaryAsync(CancellationToken cancellationToken = default)
