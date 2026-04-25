@@ -69,12 +69,14 @@ DTOs/
  ResponseReceiptDto.cs
 Interfaces/
  IImageService.cs
- IReceiptAiService.cs
+ IReceiptAppService.cs
+ IReceiptExtractionService.cs
  IReceiptRepository.cs
 obj/Debug/net10.0/
  .NETCoreApp,Version=v10.0.AssemblyAttributes.cs
  ReceiptAI.Application.AssemblyInfo.cs
  ReceiptAI.Application.GlobalUsings.g.cs
+Services/ReceiptAppService.cs
 
 [metadataReferences]
 ../ReceiptAI.Domain/obj/Debug/net10.0/ref/ReceiptAI.Domain.dll
