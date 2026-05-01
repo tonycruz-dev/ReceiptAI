@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.HttpOverrides;
 using ReceiptAI.Infrastructure;
 using ReceiptAI.Infrastructure.Mcp.Prompts;
 using ReceiptAI.Infrastructure.Mcp.Resources;
@@ -19,8 +20,8 @@ builder.Services
 	})
 	.WithToolsFromAssembly(typeof(McpReceiptTool).Assembly)
 	.WithResources<McpReceiptResources>()
-	.WithPromptsFromAssembly(typeof(ReceiptPrompts).Assembly)
-	.WithPromptsFromAssembly(typeof(McpReceiptPrompts).Assembly);
+	.WithPromptsFromAssembly(typeof(ReceiptPrompts).Assembly);
+
 
 
 builder.Services.AddCors(options =>
@@ -42,6 +43,13 @@ if (app.Environment.IsDevelopment())
 }
 
 app.MapMcp("/mcp");
+
+//app.UseForwardedHeaders(new ForwardedHeadersOptions
+//{
+//	ForwardedHeaders =
+//		ForwardedHeaders.XForwardedHost |
+//		ForwardedHeaders.XForwardedProto
+//});
 
 app.MapScalarApiReference(options =>
 {

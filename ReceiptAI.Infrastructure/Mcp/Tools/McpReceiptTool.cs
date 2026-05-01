@@ -1,15 +1,15 @@
 ﻿using ModelContextProtocol.Server;
+using ReceiptAI.Application.Common.Models;
 using ReceiptAI.Application.DTOs;
 using ReceiptAI.Application.Interfaces;
 using ReceiptAI.Domain.Entities;
+using ReceiptAI.Infrastructure.Mcp.Requests;
 using System.ComponentModel;
 
 namespace ReceiptAI.Infrastructure.Mcp.Tools;
 
 [McpServerToolType]
-public class McpReceiptTool(
-IReceiptRepository receiptRepository, 
-IReceiptExtractionService _receiptAiService) 
+public class McpReceiptTool(IReceiptRepository receiptRepository, IReceiptExtractionService _receiptAiService) 
 {
 
 	[McpServerTool(UseStructuredContent = true, Name = "create_receipt_from_image")]
@@ -160,5 +160,47 @@ IReceiptExtractionService _receiptAiService)
 			path = path.Substring(0, lastDot);
 
 		return path;
+	}
+
+	[McpServerTool(UseStructuredContent = true, ReadOnly = true, Name = "get_receipts_paged")]
+	[Description("Retrieve receipts using pagination. Use this instead of get_all_receipts when possible.")]
+	public async Task<PagedResult<ResponseReceiptDto>> GetReceiptsPagedAsync(
+	GetReceiptsPagedRequest request,
+	CancellationToken ct = default)
+	{
+		var pageNumber = request.PageNumber < 1 ? 1 : request.PageNumber;
+
+		var pageSize = request.PageSize switch
+		{
+			< 1 => 20,
+			> 100 => 100,
+			_ => request.PageSize
+		};
+
+		var pagedReceipts = await receiptRepository.GetPagedAsync(
+			new PagedRequest
+			{
+				PageNumber = pageNumber,
+				PageSize = pageSize
+			},
+			ct);
+
+		return new PagedResult<ResponseReceiptDto>
+		{
+			Items = pagedReceipts.Items.Select(r => new ResponseReceiptDto
+			{
+				Id = r.Id,
+				MerchantName = r.MerchantName,
+				PurchaseDate = r.PurchaseDate.ToString("yyyy-MM-ddTHH:mm:ssZ"),
+				TotalAmount = r.TotalAmount,
+				Currency = r.Currency,
+				Category = r.Category,
+				ImageUrl = r.ImageUrl,
+			}).ToList(),
+
+			PageNumber = pagedReceipts.PageNumber,
+			PageSize = pagedReceipts.PageSize,
+			TotalCount = pagedReceipts.TotalCount
+		};
 	}
 }

@@ -1,6 +1,10 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using ReceiptAI.Application.Common.Models;
 using ReceiptAI.Application.DTOs;
 using ReceiptAI.Application.Interfaces;
+using ReceiptAI.Domain.Entities;
+using ReceiptAI.Infrastructure.Repositories;
 
 namespace ReceiptAI.API.Controllers;
 
@@ -47,10 +51,20 @@ public class ReceiptsController(
 	}
 
 	[HttpGet]
-	public async Task<ActionResult<List<ResponseReceiptDto>>> GetAll(CancellationToken cancellationToken)
+	public async Task<ActionResult<PagedResult<Receipt>>> GetReceipts(
+	[FromQuery] int pageNumber = 1,
+	[FromQuery] int pageSize = 20,
+	CancellationToken cancellationToken = default)
 	{
-		var receipts = await _receiptAppService.GetAllAsync(cancellationToken);
-		return Ok(receipts);
+		var result = await _receiptAppService.GetPagedAsync(
+			new PagedRequest
+			{
+				PageNumber = pageNumber,
+				PageSize = pageSize
+			},
+			cancellationToken);
+
+		return Ok(result);
 	}
 
 	[HttpGet("{id:guid}")]
@@ -152,4 +166,10 @@ public class ReceiptsController(
 		var receipts = await _receiptAppService.GetThisMonthReceiptsAsync(DateTime.UtcNow, cancellationToken);
 		return Ok(receipts);
 	}
+
+	[HttpGet("categories")]
+	public async Task<ActionResult<List<string>>> GetCategories(CancellationToken cancellationToken)
+	{
+		return Ok(await _receiptAppService.GetCategoriesAsync(cancellationToken));
+     }
 }

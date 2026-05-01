@@ -1,6 +1,7 @@
 ﻿using ModelContextProtocol;
 using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
+using ReceiptAI.Application.Common.Models;
 using ReceiptAI.Application.DTOs;
 using ReceiptAI.Application.Interfaces;
 using System.ComponentModel;
@@ -131,10 +132,7 @@ public sealed class McpReceiptResources(IReceiptRepository receiptRepository)
 		return CreateResponse($"receipt://date/{date}", result);
 	}
 
-	[McpServerResource(
-		UriTemplate = "receipt://this-month",
-		Name = "Receipts This Month",
-		MimeType = "application/json")]
+	[McpServerResource(UriTemplate = "receipt://this-month",Name = "Receipts This Month", MimeType = "application/json")]
 	public Task<TextResourceContents> GetThisMonthReceiptsAsync(CancellationToken ct = default)
 	{
 		var now = DateTime.UtcNow;
@@ -145,6 +143,47 @@ public sealed class McpReceiptResources(IReceiptRepository receiptRepository)
 			from.ToString("yyyy-MM-dd"),
 			to.ToString("yyyy-MM-dd"),
 			ct);
+	}
+
+	[McpServerResource(
+	UriTemplate = "receipt://page/{pageNumber}/{pageSize}",
+	Name = "Receipts Page",
+	MimeType = "application/json")]
+	[Description("Returns a paginated list of receipts. Format: receipt://page/{pageNumber}/{pageSize}")]
+	public async Task<TextResourceContents> GetReceiptsPageAsync(
+	int pageNumber,
+	int pageSize,
+	CancellationToken ct = default)
+	{
+		if (pageNumber <= 0)
+			throw new McpException("Page number must be greater than 0.");
+
+		if (pageSize <= 0)
+			throw new McpException("Page size must be greater than 0.");
+
+		if (pageSize > 100)
+			pageSize = 100;
+
+		var pagedReceipts = await receiptRepository.GetPagedAsync(
+			new PagedRequest
+			{
+				PageNumber = pageNumber,
+				PageSize = pageSize
+			},
+			ct);
+
+		var result = new PagedResult<ReceiptViewDto>
+		{
+			Items = pagedReceipts.Items
+				.Select(ToViewDto)
+				.ToList(),
+
+			PageNumber = pagedReceipts.PageNumber,
+			PageSize = pagedReceipts.PageSize,
+			TotalCount = pagedReceipts.TotalCount
+		};
+
+		return CreateResponse($"receipt://page/{pageNumber}/{pageSize}", result);
 	}
 
 	private static ReceiptViewDto ToViewDto(Domain.Entities.Receipt r) => new()

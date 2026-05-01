@@ -1,4 +1,5 @@
-﻿using ReceiptAI.Application.DTOs;
+﻿using ReceiptAI.Application.Common.Models;
+using ReceiptAI.Application.DTOs;
 using ReceiptAI.Domain.Entities;
 
 namespace ReceiptAI.Application.Interfaces;
@@ -16,4 +17,6 @@ public interface IReceiptRepository
 	Task<List<Receipt>> GetReceiptsByDateRangeAsync(DateTime from, DateTime to, CancellationToken cancellationToken = default);
 	Task<List<Receipt>> GetReceiptsByDateAsync(DateTime date, CancellationToken cancellationToken = default);
 	Task<List<Receipt>> GetThisMonthReceiptsAsync(DateTime date, CancellationToken cancellationToken = default);
+	Task<PagedResult<Receipt>> GetPagedAsync(PagedRequest request,	CancellationToken cancellationToken = default);
+	Task<List<string>> GetCategoriesAsync(CancellationToken cancellationToken = default);
 }

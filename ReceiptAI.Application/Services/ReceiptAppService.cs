@@ -1,4 +1,5 @@
-﻿using ReceiptAI.Application.DTOs;
+﻿using ReceiptAI.Application.Common.Models;
+using ReceiptAI.Application.DTOs;
 using ReceiptAI.Application.Interfaces;
 using ReceiptAI.Domain.Entities;
 
@@ -94,5 +95,34 @@ public class ReceiptAppService(IReceiptRepository receiptRepository) : IReceiptA
 			Category = receipt.Category,
 			ImageUrl = receipt.ImageUrl
 		};
+	}
+
+	public async Task<PagedResult<ResponseReceiptDto>> GetPagedAsync(PagedRequest request, CancellationToken cancellationToken = default)
+	{
+		var receipts = await _receiptRepository.GetPagedAsync(request, cancellationToken);
+
+		return new PagedResult<ResponseReceiptDto>
+		{
+			Items = [.. receipts.Items
+				.Select(x => new ResponseReceiptDto
+				{
+					Id = x.Id,
+					MerchantName = x.MerchantName,
+					PurchaseDate = x.PurchaseDate.ToString("yyyy-MM-dd"),
+					TotalAmount = x.TotalAmount,
+					Currency = x.Currency,
+					Category = x.Category,
+					ImageUrl = x.ImageUrl
+				})],
+
+			PageNumber = receipts.PageNumber,
+			PageSize = receipts.PageSize,
+			TotalCount = receipts.TotalCount
+		};
+	}
+
+	public async Task<List<string>> GetCategoriesAsync(CancellationToken cancellationToken = default)
+	{
+		return await _receiptRepository.GetCategoriesAsync(cancellationToken);
 	}
 }

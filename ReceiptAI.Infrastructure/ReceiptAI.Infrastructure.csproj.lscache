@@ -62,6 +62,7 @@ Integrations/
  ImageService.cs
 Mcp/
  Prompts/ReceiptPrompts.cs
+ Requests/GetReceiptsPagedRequest.cs
  Resources/McpReceiptResources.cs
  Tools/McpReceiptTool.cs
 Migrations/

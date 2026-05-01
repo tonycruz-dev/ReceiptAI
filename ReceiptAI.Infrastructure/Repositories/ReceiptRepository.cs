@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using ReceiptAI.Application.Common.Models;
 using ReceiptAI.Application.DTOs;
 using ReceiptAI.Application.Interfaces;
 using ReceiptAI.Domain.Entities;
@@ -114,5 +115,46 @@ public class ReceiptRepository(ApplicationDbContext context) : IReceiptRepositor
 	{
 		_context.Receipts.Remove(receipt);
 		await _context.SaveChangesAsync(cancellationToken);
+	}
+
+	public async Task<PagedResult<Receipt>> GetPagedAsync(PagedRequest request, CancellationToken cancellationToken = default)
+	{
+		var pageNumber = request.PageNumber < 1 ? 1 : request.PageNumber;
+		var pageSize = request.PageSize switch
+		{
+			< 1 => 20,
+			> 100 => 100,
+			_ => request.PageSize
+		};
+
+		var query = _context.Receipts
+			.AsNoTracking()
+			.OrderByDescending(x => x.CreatedAt)
+			.ThenByDescending(x => x.Id);
+
+		var totalCount = await query.CountAsync(cancellationToken);
+
+		var items = await query
+			.Skip((pageNumber - 1) * pageSize)
+			.Take(pageSize)
+			.ToListAsync(cancellationToken);
+
+		return new PagedResult<Receipt>
+		{
+			Items = items,
+			PageNumber = pageNumber,
+			PageSize = pageSize,
+			TotalCount = totalCount
+		};
+	}
+
+	public async Task<List<string>> GetCategoriesAsync(CancellationToken cancellationToken = default)
+	{
+		return await _context.Receipts
+			.Where(r => !string.IsNullOrWhiteSpace(r.Category))
+			.Select(r => r.Category)
+			.Distinct()
+			.OrderBy(c => c)
+			.ToListAsync();
 	}
 }

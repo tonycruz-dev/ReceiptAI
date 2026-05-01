@@ -1,8 +1,9 @@
-﻿using System.Net;
-using System.Net.Http.Json;
-using Microsoft.Extensions.DependencyInjection;
+﻿using Microsoft.Extensions.DependencyInjection;
+using ReceiptAI.Application.Common.Models;
 using ReceiptAI.Application.DTOs;
 using ReceiptAI.Infrastructure.Persistence;
+using System.Net;
+using System.Net.Http.Json;
 
 namespace ReceiptAI.IntegrationTests;
 
@@ -61,8 +62,8 @@ public class ReceiptsControllerTests : IClassFixture<CustomWebApplicationFactory
 	[Fact]
 	public async Task GetAll_Should_Return_All_Receipts()
 	{
-
 		await ResetDatabaseAsync();
+
 		// Arrange
 		using (var scope = _factory.Services.CreateScope())
 		{
@@ -95,13 +96,18 @@ public class ReceiptsControllerTests : IClassFixture<CustomWebApplicationFactory
 		// Assert
 		Assert.Equal(HttpStatusCode.OK, response.StatusCode);
 
-		var receipts = await response.Content.ReadFromJsonAsync<List<ResponseReceiptDto>>();
+		var result = await response.Content.ReadFromJsonAsync<PagedResult<ResponseReceiptDto>>();
 
-		Assert.NotNull(receipts);
-		Assert.True(receipts!.Count >= 2);
-		Assert.Contains(receipts, r => r.MerchantName == "Tesco");
-		Assert.Contains(receipts, r => r.MerchantName == "Uber");
-		
+		Assert.NotNull(result);
+		Assert.NotNull(result!.Items);
+
+		Assert.True(result.Items.Count >= 2);
+		Assert.Contains(result.Items, r => r.MerchantName == "Tesco");
+		Assert.Contains(result.Items, r => r.MerchantName == "Uber");
+
+		Assert.Equal(1, result.PageNumber);
+		Assert.Equal(20, result.PageSize);
+		Assert.True(result.TotalCount >= 2);
 	}
 
 	[Fact]
@@ -646,6 +652,56 @@ public class ReceiptsControllerTests : IClassFixture<CustomWebApplicationFactory
 
 		// Assert
 		Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+	}
+	[Fact]
+	public async Task GetReceipts_Should_Return_Paged_Receipts()
+	{
+		await ResetDatabaseAsync();
+
+		// Arrange
+		using (var scope = _factory.Services.CreateScope())
+		{
+			var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+
+			db.Receipts.Add(new ReceiptAI.Domain.Entities.Receipt(
+				"Tesco",
+				new DateTime(2025, 1, 10),
+				25.50m,
+				"https://example.com/receipt1.jpg",
+				"img_1",
+				"GBP",
+				"Groceries"));
+
+			db.Receipts.Add(new ReceiptAI.Domain.Entities.Receipt(
+				"Uber",
+				new DateTime(2025, 1, 11),
+				14.99m,
+				"https://example.com/receipt2.jpg",
+				"img_2",
+				"GBP",
+				"Transport"));
+
+			await db.SaveChangesAsync();
+		}
+
+		// Act
+		var response = await _client.GetAsync("/api/receipts");
+
+		// Assert
+		Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+		var result = await response.Content.ReadFromJsonAsync<PagedResult<ResponseReceiptDto>>();
+
+		Assert.NotNull(result);
+		Assert.NotNull(result!.Items);
+
+		Assert.True(result.Items.Count >= 2);
+		Assert.Contains(result.Items, r => r.MerchantName == "Tesco");
+		Assert.Contains(result.Items, r => r.MerchantName == "Uber");
+
+		Assert.Equal(1, result.PageNumber);
+		Assert.Equal(20, result.PageSize);
+		Assert.True(result.TotalCount >= 2);
 	}
 	private async Task ResetDatabaseAsync()
 	{
