@@ -10,6 +10,15 @@ export interface ReceiptDto {
   createdAt: string;
 }
 
+export interface PaginatedResult<T> {
+  items: T[];
+  pageNumber: number;
+  pageSize: number;
+  totalCount: number;
+  totalPages: number;
+  hasPreviousPage: boolean;
+  hasNextPage: boolean;
+}
 export interface ImageUploadResultDto {
   publicId: string | null;
   url: string | null;

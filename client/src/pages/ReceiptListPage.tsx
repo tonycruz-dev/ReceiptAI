@@ -1,11 +1,28 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
 import { useReceipts } from "../context/useReceipts";
+import { AnimatePresence, motion } from "framer-motion";
+
+import PageBackground from "../components/receipts/PageBackground";
+import ReceiptCard from "../components/receipts/ReceiptCard";
+import ReceiptDashboardHeader from "../components/receipts/ReceiptDashboardHeader";
+import ReceiptEmptyState from "../components/receipts/ReceiptEmptyState";
+import ReceiptErrorState from "../components/receipts/ReceiptErrorState";
+import ReceiptLoadingState from "../components/receipts/ReceiptLoadingState";
+import ReceiptStats from "../components/receipts/ReceiptStats";
+import ReceiptPagination from "../components/receipts/ReceiptPagination";
+import ReceiptFilters from "../components/receipts/ReceiptFilters";
+
+import {
+  formatDate,
+  getLatestReceiptDateValue,
+  PAGE_SHELL_CLASS_NAME,
+  type ReceiptLike,
+} from "../utils/receiptFormatters";
 
 export default function ReceiptListPage() {
   const [pageError, setPageError] = useState("");
 
-  const { receipts, loading, error, fetchReceipts } = useReceipts();
+  const {receipts, loading, error, fetchReceipts, page, setPage, totalPages, hasNextPage } = useReceipts();
 
   useEffect(() => {
     async function loadReceipts() {
@@ -20,163 +37,139 @@ export default function ReceiptListPage() {
     loadReceipts();
   }, [fetchReceipts]);
 
-  const totalSpent = receipts.reduce(
-    (sum, receipt) => sum + receipt.totalAmount,
-    0
-  );
+  const safeReceipts = receipts as ReceiptLike[];
 
-  const currency = receipts.length > 0 ? receipts[0].currency : "GBP";
+  const totalSpent = safeReceipts.reduce((sum, receipt) => {
+    const amount = Number(receipt?.totalAmount);
+    return sum + (Number.isFinite(amount) ? amount : 0);
+  }, 0);
+
+  const primaryCurrency =
+    safeReceipts.find(
+      (receipt) =>
+        typeof receipt?.currency === "string" && receipt.currency.trim(),
+    )?.currency || "GBP";
+
+  const latestReceiptDateValue = getLatestReceiptDateValue(safeReceipts);
+
+  const latestReceiptDate = latestReceiptDateValue
+    ? formatDate(latestReceiptDateValue)
+    : "No receipts yet";
+
   const displayError = pageError || error;
 
+  const handleRetry = async () => {
+    try {
+      setPageError("");
+      await fetchReceipts();
+    } catch {
+      setPageError("Failed to load receipts.");
+    }
+  };
+
   if (loading) {
-    return (
-      <div className="mx-auto max-w-7xl px-6 py-12">
-        <div className="rounded-2xl border border-slate-200 bg-white p-10 shadow-sm">
-          <p className="text-sm font-medium text-slate-500">
-            Loading receipts...
-          </p>
-        </div>
-      </div>
-    );
+    return <ReceiptLoadingState />;
   }
 
   if (displayError) {
     return (
-      <div className="mx-auto max-w-7xl px-6 py-12">
-        <div className="rounded-2xl border border-red-200 bg-red-50 p-10 shadow-sm">
-          <p className="text-sm font-medium text-red-600">{displayError}</p>
-        </div>
-      </div>
+      <ReceiptErrorState errorMessage={displayError} onRetry={handleRetry} />
     );
   }
 
   return (
-    <section className="min-h-screen bg-slate-50">
-      <div className="mx-auto max-w-7xl px-6 py-10 lg:px-8">
-        <div className="mb-10 flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
-          <div>
-            <p className="mb-2 text-sm font-semibold uppercase tracking-[0.2em] text-slate-500">
-              Dashboard
-            </p>
+    <section className={PAGE_SHELL_CLASS_NAME}>
+      <PageBackground />
 
-            <h1 className="text-4xl font-bold tracking-tight text-slate-900 sm:text-5xl">
-              Receipts
-            </h1>
+      <div className="relative mx-auto max-w-7xl px-6 py-10 lg:px-8">
+        <ReceiptDashboardHeader />
+        <ReceiptFilters />
+        <ReceiptStats
+          totalSpent={totalSpent}
+          primaryCurrency={primaryCurrency}
+          receiptCount={safeReceipts.length}
+          latestReceiptDate={latestReceiptDate}
+        />
 
-            <p className="mt-3 max-w-2xl text-base text-slate-600">
-              View, manage, and organize your uploaded receipts in one place.
-            </p>
-
-            <div className="mt-5 inline-flex items-center gap-4 rounded-2xl border border-slate-200 bg-white px-5 py-3 shadow-sm">
-              <div>
-                <p className="text-xs font-medium uppercase tracking-wide text-slate-400">
-                  Total spent
-                </p>
-                <p className="text-xl font-bold text-slate-900">
-                  {new Intl.NumberFormat(undefined, {
-                    style: "currency",
-                    currency,
-                  }).format(totalSpent)}
-                </p>
-              </div>
-
-              <div className="h-8 w-px bg-slate-200" />
-
-              <div>
-                <p className="text-xs font-medium uppercase tracking-wide text-slate-400">
-                  Receipts
-                </p>
-                <p className="text-xl font-bold text-slate-900">
-                  {receipts.length}
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <Link
-            to="/upload"
-            className="inline-flex items-center justify-center rounded-xl bg-slate-900 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:-translate-y-0.5 hover:bg-slate-800"
-          >
-            Upload Receipt
-          </Link>
-        </div>
-
-        {receipts.length === 0 ? (
-          <div className="rounded-3xl border border-dashed border-slate-300 bg-white p-16 text-center shadow-sm">
-            <h2 className="text-xl font-semibold text-slate-900">
-              No receipts yet
-            </h2>
-            <p className="mt-2 text-slate-600">
-              Start by uploading your first receipt.
-            </p>
-            <Link
-              to="/upload"
-              className="mt-6 inline-flex items-center justify-center rounded-xl bg-slate-900 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800"
-            >
-              Upload your first receipt
-            </Link>
-          </div>
+        {safeReceipts.length === 0 ? (
+          <ReceiptEmptyState />
         ) : (
-          <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
-            {receipts.map((receipt) => (
-              <Link
-                key={receipt.id}
-                to={`/receipts/${receipt.id}`}
-                className="group overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm transition duration-300 hover:-translate-y-1 hover:shadow-xl"
+          <>
+            <AnimatePresence mode="popLayout">
+              <motion.div
+                key={`${page}-${safeReceipts.map((r) => r.id).join("-")}`}
+                className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3"
+                initial="hidden"
+                animate="show"
+                exit="exit"
+                variants={{
+                  hidden: {},
+                  show: {
+                    transition: {
+                      staggerChildren: 0.06,
+                      delayChildren: 0.04,
+                    },
+                  },
+                  exit: {
+                    transition: {
+                      staggerChildren: 0.025,
+                      staggerDirection: -1,
+                    },
+                  },
+                }}
               >
-                <div className="relative aspect-4/3 overflow-hidden bg-slate-100">
-                  {receipt.imageUrl ? (
-                    <img
-                      src={receipt.imageUrl}
-                      alt={receipt.merchantName}
-                      className="h-full w-full object-cover transition duration-500 group-hover:scale-[1.03]"
-                    />
-                  ) : (
-                    <div className="flex h-full items-center justify-center text-sm font-medium text-slate-400">
-                      No image available
-                    </div>
-                  )}
+                {safeReceipts.map((receipt) => (
+                  <motion.div
+                    layout
+                    key={receipt.id}
+                    variants={{
+                      hidden: {
+                        opacity: 0,
+                        y: 18,
+                        scale: 0.96,
+                        filter: "blur(6px)",
+                      },
+                      show: {
+                        opacity: 1,
+                        y: 0,
+                        scale: 1,
+                        filter: "blur(0px)",
+                        transition: {
+                          type: "spring",
+                          stiffness: 260,
+                          damping: 24,
+                          mass: 0.8,
+                        },
+                      },
+                      exit: {
+                        opacity: 0,
+                        y: -8,
+                        scale: 0.98,
+                        filter: "blur(4px)",
+                        transition: {
+                          duration: 0.16,
+                          ease: "easeInOut",
+                        },
+                      },
+                    }}
+                    whileHover={{
+                      y: -4,
+                      transition: { duration: 0.18, ease: "easeOut" },
+                    }}
+                  >
+                    <ReceiptCard receipt={receipt} />
+                  </motion.div>
+                ))}
+              </motion.div>
+            </AnimatePresence>
 
-                  <div className="absolute inset-x-0 bottom-0 h-24 bg-linear-to-t from-black/20 to-transparent" />
-                </div>
-
-                <div className="p-6">
-                  <div className="mb-4 flex items-start justify-between gap-4">
-                    <div>
-                      <h2 className="text-xl font-semibold tracking-tight text-slate-900">
-                        {receipt.merchantName}
-                      </h2>
-                      <p className="mt-1 text-sm text-slate-500">
-                        {new Date(receipt.purchaseDate).toLocaleDateString()}
-                      </p>
-                    </div>
-
-                    <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700">
-                      {receipt.category}
-                    </span>
-                  </div>
-
-                  <div className="flex items-end justify-between border-t border-slate-100 pt-4">
-                    <div>
-                      <p className="text-xs font-medium uppercase tracking-wide text-slate-400">
-                        Total
-                      </p>
-                      <p className="mt-1 text-lg font-bold text-slate-900">
-                        {new Intl.NumberFormat(undefined, {
-                          style: "currency",
-                          currency: receipt.currency,
-                        }).format(receipt.totalAmount)}
-                      </p>
-                    </div>
-
-                    <span className="text-sm font-semibold text-slate-700 transition group-hover:text-slate-900">
-                      View details →
-                    </span>
-                  </div>
-                </div>
-              </Link>
-            ))}
-          </div>
+            <ReceiptPagination
+              page={page}
+              totalPages={totalPages}
+              hasNextPage={hasNextPage}
+              onPageChange={setPage}
+            />
+          </>
         )}
       </div>
     </section>
