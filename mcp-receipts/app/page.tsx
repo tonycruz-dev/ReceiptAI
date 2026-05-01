@@ -1,29 +1,13 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import {
-  CatalogResponse,
-  MenuKey,
-  ToolItem,
-  ResourceItem,
-  PromptItem,
-  ChatMessage,
-  QuickActionType,
-  ActionPayload,
-} from "@/lib/types";
+import { CatalogResponse, MenuKey, ToolItem, ResourceItem, PromptItem, ChatMessage, QuickActionType, ActionPayload,} from "@/lib/types";
 import ChatWindow from "@/app/components/chat/ChatWindow";
 import Composer from "@/app/components/chat/Composer";
 import QuickActions from "@/app/components/chat/QuickActions";
 import DialogRenderer from "@/app/components/chat/DialogRenderer";
-import {
-  buildUserFacingText,
-  getSelectedContext,
-  inferDialogTypeFromLabel,
-} from "@/lib/receipt-chat/helpers";
-import {
-  buildAssistantMessage,
-  postChatRequest,
-} from "@/lib/receipt-chat/chat-api";
+import {buildUserFacingText, getSelectedContext, inferDialogTypeFromLabel,} from "@/lib/receipt-chat/helpers";
+import {buildAssistantMessage, postChatRequest,} from "@/lib/receipt-chat/chat-api";
 
 type UploadResponse = {
   publicId: string | null;
@@ -73,6 +57,8 @@ export default function Home() {
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [singleDate, setSingleDate] = useState("");
+  const [pageNumberInput, setPageNumberInput] = useState("1");
+  const [pageSizeInput, setPageSizeInput] = useState("10");
 
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
   const menuRef = useRef<HTMLDivElement | null>(null);
@@ -609,6 +595,27 @@ export default function Home() {
         endDate,
       });
     }
+
+    if (activeDialog === "receipts-paged") {
+      const pageNumber = Number(pageNumberInput);
+      const pageSize = Number(pageSizeInput);
+      if (!Number.isFinite(pageNumber) || pageNumber <= 0) return;
+      if (!Number.isFinite(pageSize) || pageSize <= 0) return;
+
+      closeDialog();
+      await sendStructuredToolMessage({
+        action: "receipts-paged",
+        pageNumber,
+        pageSize,
+      });
+    }
+    if (activeDialog === "receipts-this-month") {
+      closeDialog();
+      await sendStructuredToolMessage({
+        action: "receipts-this-month",
+      });
+    }
+
   }
 
   const selectedLabel = selectedTool
@@ -620,44 +627,44 @@ export default function Home() {
         : "No item selected";
 
   return (
-    <div className="min-h-screen bg-[#edf0f3] text-zinc-900">
-      <main className="mx-auto flex min-h-screen max-w-5xl flex-col px-4 py-10">
-        <div className="flex-1" />
-
+    <div className="min-h-screen bg-zinc-50 text-zinc-900">
+      <main className="mx-auto flex min-h-screen max-w-5xl flex-col gap-6 px-4 py-8">
         <ChatWindow
           messages={messages}
           sending={sending}
           messagesEndRef={messagesEndRef}
         />
 
-        <Composer
-          input={input}
-          setInput={setInput}
-          sending={sending}
-          onSend={() => void sendMessage()}
-          selectedLabel={selectedLabel}
-          menuRef={menuRef}
-          openMenu={openMenu}
-          setOpenMenu={setOpenMenu}
-          catalog={catalog}
-          loading={loading}
-          error={error}
-          search={search}
-          setSearch={setSearch}
-          filteredTools={filteredTools}
-          filteredResources={filteredResources}
-          filteredPrompts={filteredPrompts}
-          selectedTool={selectedTool}
-          selectedResource={selectedResource}
-          selectedPrompt={selectedPrompt}
-          onToolSelect={handleToolSelect}
-          onResourceSelect={handleResourceSelect}
-          onPromptSelect={handlePromptSelect}
-        />
+        <div className="sticky bottom-0 z-10 -mx-4 bg-linear-to-t from-zinc-50 via-zinc-50/95 to-transparent px-4 pb-6 pt-4">
+          <QuickActions onAction={handleQuickAction} />
 
-        <QuickActions onAction={handleQuickAction} />
-
-        <div className="flex-1" />
+          <div className="mt-4">
+            <Composer
+              input={input}
+              setInput={setInput}
+              sending={sending}
+              onSend={() => void sendMessage()}
+              selectedLabel={selectedLabel}
+              menuRef={menuRef}
+              openMenu={openMenu}
+              setOpenMenu={setOpenMenu}
+              catalog={catalog}
+              loading={loading}
+              error={error}
+              search={search}
+              setSearch={setSearch}
+              filteredTools={filteredTools}
+              filteredResources={filteredResources}
+              filteredPrompts={filteredPrompts}
+              selectedTool={selectedTool}
+              selectedResource={selectedResource}
+              selectedPrompt={selectedPrompt}
+              onToolSelect={handleToolSelect}
+              onResourceSelect={handleResourceSelect}
+              onPromptSelect={handlePromptSelect}
+            />
+          </div>
+        </div>
       </main>
 
       <DialogRenderer
@@ -680,6 +687,10 @@ export default function Home() {
         setStartDate={setStartDate}
         endDate={endDate}
         setEndDate={setEndDate}
+        pageNumberInput={pageNumberInput}
+        setPageNumberInput={setPageNumberInput}
+        pageSizeInput={pageSizeInput}
+        setPageSizeInput={setPageSizeInput}
       />
     </div>
   );

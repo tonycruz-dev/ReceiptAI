@@ -5,13 +5,19 @@
 // The provider uses useState to manage local state and useCallback to memoize the functions that interact with the API. 
 // The context value is memoized using useMemo to optimize performance and prevent unnecessary re-renders of consuming components.
 
-import { useCallback, useMemo, useState, type ReactNode } from "react";
-import { ReceiptsContext } from "./ReceiptsContext";
+import React, { useCallback, useMemo, useState, type ReactNode } from "react";
+import { ReceiptFilter, ReceiptsContext } from "./ReceiptsContext";
 import {
   getReceipts,
   getReceiptById,
   createReceipt,
   deleteReceipt,
+  getRecentReceipts,
+  getReceiptsByCategory,
+  getReceiptsByDateRange,
+  getReceiptsByDate,
+  getThisMonthReceipts,
+  getReceiptCategories,
 } from "@/lib/api";
 import type { CreateReceiptRequest, ReceiptDto } from "@/types/receipt";
 
@@ -19,25 +25,65 @@ import type { CreateReceiptRequest, ReceiptDto } from "@/types/receipt";
 // It maintains the state of receipts, the selected receipt, loading states, and error handling.
 export function ReceiptsProvider({ children }: { children: ReactNode }) {
   const [receipts, setReceipts] = useState<ReceiptDto[]>([]);
-  const [selectedReceipt, setSelectedReceipt] = useState<ReceiptDto | null>(
-    null
-  );
+  const [selectedReceipt, setSelectedReceipt] = useState<ReceiptDto | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [hasNextPage, setHasNextPage] = useState(false);
+  const [filter, setFilter] = useState<ReceiptFilter>("all");
+  const [category, setCategory] = useState("");
+  const [fromDate, setFromDate] = useState("");
+  const [toDate, setToDate] = useState("");
+  const [selectedDate, setSelectedDate] = useState("");
+  const [categories, setCategories] = useState<string[]>([]);
 
-  const fetchReceipts = useCallback(async () => {
-    setLoading(true);
-    setError("");
+    const fetchReceipts = useCallback(async () => {
+      setLoading(true);
+      setError("");
 
-    try {
-      const data = await getReceipts();
-      setReceipts(data);
-    } catch {
-      setError("Failed to load receipts");
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+      try {
+        if (filter === "recent") {
+          const data = await getRecentReceipts(10);
+          setReceipts(data);
+          return;
+        }
+
+        if (filter === "category" && category) {
+          const data = await getReceiptsByCategory(category);
+          setReceipts(data);
+          return;
+        }
+
+        if (filter === "date-range" && fromDate && toDate) {
+          const data = await getReceiptsByDateRange(fromDate, toDate);
+          setReceipts(data);
+          return;
+        }
+
+        if (filter === "by-date" && selectedDate) {
+          const data = await getReceiptsByDate(selectedDate);
+          setReceipts(data);
+          return;
+        }
+
+        if (filter === "this-month") {
+          const data = await getThisMonthReceipts();
+          setReceipts(data);
+          return;
+        }
+
+        const data = await getReceipts(page, 10);
+        setReceipts(data.items);
+        setTotalPages(data.totalPages);
+        setHasNextPage(data.hasNextPage);
+      } catch {
+        setError("Failed to load receipts");
+      } finally {
+        setLoading(false);
+      }
+    }, [filter, category, fromDate, toDate, selectedDate, page]);
 
   // Fetch a single receipt by ID and set it as the selected receipt.
   // This function is memoized using useCallback to prevent unnecessary re-renders of consuming components.
@@ -85,6 +131,14 @@ export function ReceiptsProvider({ children }: { children: ReactNode }) {
     setSelectedReceipt((prev) => (prev?.id === id ? null : prev));
   }, []);
 
+  const fetchCategories = useCallback(async () => {
+    try {
+      const data = await getReceiptCategories();
+      setCategories(data);
+    } catch {
+      // optional: set error or ignore silently
+    }
+  }, []);
   // Clear the selected receipt by setting it to null.
   // This function is memoized using useCallback to prevent unnecessary re-renders of consuming components.
   const clearSelectedReceipt = useCallback(() => {
@@ -100,24 +154,68 @@ export function ReceiptsProvider({ children }: { children: ReactNode }) {
       selectedReceipt,
       loading,
       error,
+      // pagination
+      page,
+      setPage,
+      totalPages,
+      hasNextPage,
+
+      // filters 👇
+      filter,
+      setFilter,
+      category,
+      setCategory,
+      fromDate,
+      setFromDate,
+      toDate,
+      setToDate,
+      categories,
+      setCategories,
+
+      selectedDate,
+      setSelectedDate,
+
       fetchReceipts,
       fetchReceiptById,
       createReceipt: handleCreateReceipt,
       deleteReceipt: handleDeleteReceipt,
       clearSelectedReceipt,
       setSelectedReceipt,
+      fetchCategories,
     }),
     [
       receipts,
       selectedReceipt,
       loading,
       error,
+
+      // pagination
+      page,
+      setPage,
+      totalPages,
+      hasNextPage,
+
+      // filters 👇
+      filter,
+      setFilter,
+      category,
+      setCategory,
+      fromDate,
+      setFromDate,
+      toDate,
+      setToDate,
+      categories,
+      setCategories,
+      selectedDate,
+      setSelectedDate,
+
       fetchReceipts,
       fetchReceiptById,
       handleCreateReceipt,
       handleDeleteReceipt,
       clearSelectedReceipt,
-    ]
+      fetchCategories,
+    ],
   );
 
   return (

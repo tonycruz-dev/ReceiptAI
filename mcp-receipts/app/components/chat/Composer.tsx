@@ -66,13 +66,13 @@ export default function Composer({
   onPromptSelect,
 }: ComposerProps) {
   return (
-    <section className="mx-auto mt-8 w-full max-w-5xl">
-      <div className="rounded-2xl border border-zinc-200 bg-white/95 p-4 shadow-[0_12px_40px_rgba(0,0,0,0.08)] backdrop-blur">
+    <section className="w-full">
+      <div className="rounded-2xl border border-zinc-200 bg-white/95 p-4 shadow-sm backdrop-blur">
         <textarea
           value={input}
           onChange={(e) => setInput(e.target.value)}
           placeholder="Ask about receipts, use a tool, browse a resource, or run a prompt..."
-          className="min-h-16 w-full resize-none bg-transparent px-3 py-2 text-lg outline-none placeholder:text-zinc-400"
+          className="min-h-16 w-full resize-none bg-transparent px-3 py-2 text-base leading-relaxed outline-none placeholder:text-zinc-400"
           onKeyDown={(e) => {
             if (e.key === "Enter" && !e.shiftKey) {
               e.preventDefault();
@@ -176,7 +176,7 @@ export default function Composer({
           </div>
 
           <div className="flex items-center gap-3">
-            <div className="hidden rounded-full bg-zinc-100 px-3 py-1.5 text-sm text-zinc-600 md:block">
+            <div className="inline-flex max-w-full items-center rounded-full border border-zinc-200 bg-zinc-50 px-3 py-1.5 text-xs font-medium text-zinc-700">
               {selectedLabel}
             </div>
 

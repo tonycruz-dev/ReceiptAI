@@ -6,6 +6,7 @@
 import "../global.css";
 import { Stack } from "expo-router";
 import { ReceiptsProvider } from "@/context/ReceiptsProvider";
+import React from "react";
 export default function RootLayout() {
   return (
     <ReceiptsProvider>

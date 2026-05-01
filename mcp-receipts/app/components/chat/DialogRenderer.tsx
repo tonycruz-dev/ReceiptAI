@@ -20,6 +20,10 @@ type DialogRendererProps = {
   setStartDate: (value: string) => void;
   endDate: string;
   setEndDate: (value: string) => void;
+  pageNumberInput: string;
+  setPageNumberInput: (value: string) => void;
+  pageSizeInput: string;
+  setPageSizeInput: (value: string) => void;
 };
 
 export default function DialogRenderer({
@@ -42,6 +46,10 @@ export default function DialogRenderer({
   setStartDate,
   endDate,
   setEndDate,
+  pageNumberInput,
+  setPageNumberInput,
+  pageSizeInput,
+  setPageSizeInput,
 }: DialogRendererProps) {
   if (!activeDialog) return null;
 
@@ -57,6 +65,8 @@ export default function DialogRenderer({
           {activeDialog === "top-10-resource" && "Top resources"}
           {activeDialog === "receipts-by-date-range" && "Select date range"}
           {activeDialog === "receipts-by-date" && "Select a date"}
+          {activeDialog === "receipts-this-month" && "Receipts this month"}
+          {activeDialog === "receipts-paged" && "Receipt pagination"}
         </h3>
 
         <div className="mt-4 space-y-4">
@@ -146,6 +156,40 @@ export default function DialogRenderer({
                   type="date"
                   value={endDate}
                   onChange={(e) => setEndDate(e.target.value)}
+                  className="w-full rounded-xl border border-zinc-300 px-3 py-2 outline-none"
+                />
+              </div>
+            </div>
+          )}
+
+          {activeDialog === "receipts-this-month" && (
+            <p className="text-sm text-zinc-600">
+              This will retrieve all receipts for the current month.
+            </p>
+          )}
+
+          {activeDialog === "receipts-paged" && (
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <div className="space-y-1">
+                <label className="text-sm text-zinc-600">Page number</label>
+                <input
+                  type="number"
+                  min="1"
+                  value={pageNumberInput}
+                  onChange={(e) => setPageNumberInput(e.target.value)}
+                  placeholder="1"
+                  className="w-full rounded-xl border border-zinc-300 px-3 py-2 outline-none"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-sm text-zinc-600">Page size</label>
+                <input
+                  type="number"
+                  min="1"
+                  value={pageSizeInput}
+                  onChange={(e) => setPageSizeInput(e.target.value)}
+                  placeholder="10"
                   className="w-full rounded-xl border border-zinc-300 px-3 py-2 outline-none"
                 />
               </div>

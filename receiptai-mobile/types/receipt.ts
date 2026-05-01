@@ -34,3 +34,30 @@ export interface CreateReceiptRequest {
   imageUrl: string;
   imagePublicId: string;
 }
+
+export type PaginatedResult<T> = {
+  items: T[];
+  pageNumber: number;
+  pageSize: number;
+  totalCount: number;
+  totalPages: number;
+  hasPreviousPage: boolean;
+  hasNextPage: boolean;
+};
+
+export type FilterOption =
+  | "all"
+  | "recent"
+  | "category"
+  | "date-range"
+  | "by-date"
+  | "this-month";
+
+export const filterOptions: [FilterOption, string][] = [
+  ["all", "All"],
+  ["recent", "Recent"],
+  ["category", "Category"],
+  ["date-range", "Range"],
+  ["by-date", "Date"],
+  ["this-month", "This month"],
+];

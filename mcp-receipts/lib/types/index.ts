@@ -92,6 +92,14 @@ export type ActionPayload =
   | {
       action: "receipts-by-date";
       date: string;
+    }
+    | {
+      action: "receipts-this-month";
+    }
+  | {
+      action: "receipts-paged";
+      pageNumber: number;
+      pageSize: number;
     };
 
     export type QuickActionType =
@@ -103,4 +111,6 @@ export type ActionPayload =
       | "receipts-by-date"
       | "receipts-by-id"
       | "recent-count"
-      | "top-10-resource";
+      | "top-10-resource"
+      | "receipts-this-month"
+      | "receipts-paged";

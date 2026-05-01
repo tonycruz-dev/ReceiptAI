@@ -1,11 +1,5 @@
-// This file defines the TabLayout component, which sets up the tab-based navigation for the application 
-// using the Tabs component from expo-router.
-// The TabLayout component configures the appearance and behavior of the tab bar, 
-// including active and inactive tint colors, hiding the tab bar when the keyboard is open, and styling the tab bar and labels. 
-// It defines two tabs: one for displaying the list of receipts (index) and another for uploading new receipts (upload). 
-// Each tab is associated with an icon from the Ionicons library, which changes color based on whether the tab is active or inactive. 
-// The component also uses the useSafeAreaInsets hook to ensure that the 
-// tab bar is properly positioned and sized according to the device's safe area insets.
+import React from "react";
+import { Platform } from "react-native";
 import { Tabs } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -17,24 +11,39 @@ export default function TabLayout() {
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: "#0f172a",
-        tabBarInactiveTintColor: "#94a3b8",
         tabBarHideOnKeyboard: true,
+
         sceneStyle: {
-          backgroundColor: "#f8fafc",
+          backgroundColor: "#f1f5f9",
         },
+
+        tabBarActiveTintColor: "#0f172a",
+        tabBarInactiveTintColor: "#64748b",
+
         tabBarStyle: {
+          height: 54 + insets.bottom,
+          paddingTop: 5,
+          paddingBottom: 24,
+
           backgroundColor: "#ffffff",
-          borderTopColor: "#e2e8f0",
-          borderTopWidth: 1,
-          height: 60 + insets.bottom,
-          paddingTop: 8,
-          paddingBottom: Math.max(insets.bottom, 10),
+          borderTopWidth: 2,
+          borderTopColor: "#0f172a",
+
+          shadowColor: "#020617",
+          shadowOpacity: 0.15,
+          shadowRadius: 12,
+          shadowOffset: { width: 0, height: -4 },
+          elevation: 16,
         },
+
         tabBarLabelStyle: {
           fontSize: 12,
-          fontWeight: "600",
-          marginBottom: 2,
+          fontWeight: "900",
+          marginBottom: Platform.OS === "android" ? 4 : 2,
+        },
+
+        tabBarIconStyle: {
+          marginTop: 2,
         },
       }}
     >
@@ -42,8 +51,12 @@ export default function TabLayout() {
         name="index"
         options={{
           title: "Receipts",
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="receipt-outline" size={size} color={color} />
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons
+              name={focused ? "receipt" : "receipt-outline"}
+              size={24}
+              color={color}
+            />
           ),
         }}
       />
@@ -52,8 +65,12 @@ export default function TabLayout() {
         name="upload"
         options={{
           title: "Upload",
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="cloud-upload-outline" size={size} color={color} />
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons
+              name={focused ? "cloud-upload" : "cloud-upload-outline"}
+              size={24}
+              color={color}
+            />
           ),
         }}
       />

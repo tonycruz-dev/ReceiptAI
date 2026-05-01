@@ -33,7 +33,7 @@ type QuickActionsProps = {
 
 export default function QuickActions({ onAction }: QuickActionsProps) {
   return (
-    <div className="mt-5 flex flex-wrap gap-3 px-2">
+    <div className="flex flex-wrap gap-2">
       {receiptActions.map((action) => (
         <QuickActionPill
           key={action.label}

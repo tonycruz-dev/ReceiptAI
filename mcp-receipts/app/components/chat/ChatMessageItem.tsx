@@ -1,22 +1,18 @@
-import { ChatMessage } from "@/lib/types";
-import { ChatBubble } from "./ChatBubble";
-import ReceiptGrid from "../ReceiptGrid";
+import ChatMessageBubble from "./ChatMessage";
+import ReceiptList from "../receipts/ReceiptList";
+import type { ChatMessage } from "@/lib/types";
 
 export function ChatMessageItem({ message }: { message: ChatMessage }) {
-  const receiptCardsVisible = hasReceiptCards(message);
-  const bubbleVisible = message.role === "user" || !receiptCardsVisible;
+  const hasReceipts =
+    message.role === "assistant" && Boolean(message.toolData?.receipts?.length);
 
   return (
     <div className="space-y-3">
-      {bubbleVisible ? <ChatBubble message={message} /> : null}
-
-      {receiptCardsVisible ? (
-        <ReceiptGrid receipts={message.toolData!.receipts!} />
-      ) : null}
+      {hasReceipts ? (
+        <ReceiptList receipts={message.toolData!.receipts} />
+      ) : (
+        <ChatMessageBubble message={message} />
+      )}
     </div>
   );
-}
-
-function hasReceiptCards(message: ChatMessage) {
-  return message.role === "assistant" && !!message.toolData?.receipts?.length;
 }
