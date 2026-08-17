@@ -8,7 +8,7 @@ export function toGroqTools(mcpTools: McpTool[]): MappedTool[] {
       description: tool.description || `MCP tool: ${tool.name}`,
       parameters:
         typeof tool.inputSchema === "object" && tool.inputSchema
-          ? tool.inputSchema
+          ? (tool.inputSchema as Record<string, unknown>)
           : {
               type: "object",
               properties: {},

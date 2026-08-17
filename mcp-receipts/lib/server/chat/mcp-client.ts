@@ -8,7 +8,10 @@ export async function createMcpClient() {
     throw new Error("Missing MCP_SERVER_URL");
   }
 
-  const transport = new StreamableHTTPClientTransport(new URL(serverUrl));
+  const endpoint = serverUrl.endsWith("/mcp")
+    ? serverUrl
+    : `${serverUrl.replace(/\/+$/, "")}/mcp`;
+  const transport = new StreamableHTTPClientTransport(new URL(endpoint));
 
   const client = new Client({
     name: "receipt-assistant-chat",

@@ -1,6 +1,5 @@
 import { cleanReceipt, formatReceiptsForModel } from "./receipt-normalizer";
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function parseToolArguments(
   args: string | undefined,
 ): Record<string, unknown> {

@@ -21,6 +21,7 @@ export default function ReceiptFilters() {
   useEffect(() => {
     async function loadCategories() {
       const data = await getReceiptCategories();
+      console.log("Fetched categories:", data);
       setCategories(data);
     }
 

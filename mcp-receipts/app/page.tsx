@@ -1,109 +1,78 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
-import { CatalogResponse, MenuKey, ToolItem, ResourceItem, PromptItem, ChatMessage, QuickActionType, ActionPayload,} from "@/lib/types";
+import { useEffect, useRef, useState } from "react";
 import ChatWindow from "@/app/components/chat/ChatWindow";
 import Composer from "@/app/components/chat/Composer";
 import QuickActions from "@/app/components/chat/QuickActions";
-import DialogRenderer from "@/app/components/chat/DialogRenderer";
-import {buildUserFacingText, getSelectedContext, inferDialogTypeFromLabel,} from "@/lib/receipt-chat/helpers";
-import {buildAssistantMessage, postChatRequest,} from "@/lib/receipt-chat/chat-api";
+import CapabilityDialog from "@/app/components/CapabilityDialog";
+import {
+  buildPromptArguments,
+  buildToolArguments,
+  getPromptFields,
+  getTemplateFields,
+  getToolFields,
+  isMutationTool,
+  resolveResourceTemplate,
+  type CapabilityField,
+} from "@/lib/mcp/capability-utils";
+import { callTool, getPrompt, readResource } from "@/lib/mcp/browser-client";
+import { buildAssistantMessage, postChatRequest } from "@/lib/receipt-chat/chat-api";
+import type {
+  CatalogResponse,
+  ChatMessage,
+  McpPromptMessage,
+  McpSelection,
+  MenuKey,
+  QuickActionType,
+  ReceiptCardData,
+} from "@/lib/types";
 
-type UploadResponse = {
-  publicId: string | null;
-  url: string | null;
-  error: string | null;
+const emptyCatalog: CatalogResponse = {
+  tools: [],
+  resources: [],
+  resourceTemplates: [],
+  prompts: [],
 };
 
 export default function Home() {
-  const [catalog, setCatalog] = useState<CatalogResponse>({
-    tools: [],
-    resources: [],
-    prompts: [],
-    resourceTemplates: [],
-  });
-
+  const [catalog, setCatalog] = useState<CatalogResponse>(emptyCatalog);
+  const [selection, setSelection] = useState<McpSelection | null>(null);
+  const [dialogSelection, setDialogSelection] = useState<McpSelection | null>(null);
+  const [fieldValues, setFieldValues] = useState<Record<string, string>>({});
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  const [confirmed, setConfirmed] = useState(false);
+  const [openMenu, setOpenMenu] = useState<MenuKey>(null);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [openMenu, setOpenMenu] = useState<MenuKey>(null);
-
-  const [selectedTool, setSelectedTool] = useState<ToolItem | null>(null);
-  const [selectedResource, setSelectedResource] = useState<ResourceItem | null>(
-    null,
-  );
-  const [selectedPrompt, setSelectedPrompt] = useState<PromptItem | null>(null);
-
+  const [catalogError, setCatalogError] = useState<string | null>(null);
+  const [input, setInput] = useState("");
+  const [sending, setSending] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
       role: "assistant",
       content:
-        "Ask about receipts, browse MCP tools, open resources, or use prompts from the menu.",
+        "Ask about receipts or select a specific MCP tool, resource, template, or prompt.",
       toolData: null,
     },
   ]);
-
-  const [input, setInput] = useState("");
-  const [sending, setSending] = useState(false);
-
-  const [activeDialog, setActiveDialog] = useState<QuickActionType | null>(
-    null,
-  );
-  const [selectedImage, setSelectedImage] = useState<File | null>(null);
-  const [categoryInput, setCategoryInput] = useState("");
-  const [receiptIdInput, setReceiptIdInput] = useState("");
-  const [recentCountInput, setRecentCountInput] = useState("5");
-  const [topCountInput, setTopCountInput] = useState("10");
-  const [startDate, setStartDate] = useState("");
-  const [endDate, setEndDate] = useState("");
-  const [singleDate, setSingleDate] = useState("");
-  const [pageNumberInput, setPageNumberInput] = useState("1");
-  const [pageSizeInput, setPageSizeInput] = useState("10");
-
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
-  const menuRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     let cancelled = false;
-
-    async function loadCatalog() {
-      try {
-        setLoading(true);
-        setError(null);
-
-        const res = await fetch("/api/mcp/catalog", {
-          method: "GET",
-          cache: "no-store",
-        });
-
-        if (!res.ok) {
-          throw new Error("Failed to load MCP catalog");
-        }
-
-        const data: CatalogResponse = await res.json();
-        console.log("[MCP Catalog] Loaded catalog:", data);
-
+    fetch("/api/mcp/catalog", { cache: "no-store" })
+      .then(async (response) => {
+        const data = (await response.json()) as CatalogResponse & { error?: string };
+        if (!response.ok) throw new Error(data.error || "Failed to load MCP catalog.");
+        if (!cancelled) setCatalog(data);
+      })
+      .catch((error: unknown) => {
         if (!cancelled) {
-          setCatalog({
-            tools: data.tools ?? [],
-            resources: data.resources ?? [],
-            prompts: data.prompts ?? [],
-            resourceTemplates: data.resourceTemplates ?? [],
-          });
+          setCatalogError(error instanceof Error ? error.message : "Catalog failed.");
         }
-      } catch (err) {
-        if (!cancelled) {
-          setError(err instanceof Error ? err.message : "Something went wrong");
-        }
-      } finally {
-        if (!cancelled) {
-          setLoading(false);
-        }
-      }
-    }
-
-    loadCatalog();
-
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
     return () => {
       cancelled = true;
     };
@@ -113,116 +82,140 @@ export default function Home() {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, sending]);
 
-  useEffect(() => {
-    function handleOutsideClick(event: MouseEvent) {
-      if (!menuRef.current?.contains(event.target as Node)) {
-        setOpenMenu(null);
+  const fields = getFields(dialogSelection);
+  const mutation =
+    dialogSelection?.kind === "tool" && isMutationTool(dialogSelection);
+
+  function chooseCapability(nextSelection: McpSelection) {
+    setSelection(nextSelection);
+    setDialogSelection(nextSelection);
+    setFieldValues(defaultValues(nextSelection));
+    setFieldErrors({});
+    setConfirmed(false);
+    setOpenMenu(null);
+  }
+
+  async function executeCapability() {
+    const target = dialogSelection;
+    if (!target || sending) return;
+    setFieldErrors({});
+
+    if (target.kind === "tool") {
+      const validation = buildToolArguments(target, fieldValues);
+      if (!validation.ok) return setFieldErrors(validation.errors);
+      if (isMutationTool(target) && !confirmed) {
+        return setFieldErrors({ _form: "Confirm this mutation before running it." });
       }
+      await runOperation(
+        `Tool: ${target.title || target.name}`,
+        () => callTool({ name: target.name, arguments: validation.value, confirmed }),
+      );
+      return;
     }
 
-    document.addEventListener("mousedown", handleOutsideClick);
-    return () => document.removeEventListener("mousedown", handleOutsideClick);
-  }, []);
+    if (target.kind === "resource") {
+      await runOperation(
+        `Resource: ${target.title || target.name}`,
+        () => readResource({ uri: target.uri }),
+        target.uri,
+      );
+      return;
+    }
 
-  const filteredTools = useMemo(() => {
-    const q = search.toLowerCase().trim();
-    if (!q) return catalog.tools;
+    if (target.kind === "resourceTemplate") {
+      const resolved = resolveResourceTemplate(target, fieldValues);
+      if (!resolved.ok) return setFieldErrors(resolved.errors);
+      await runOperation(
+        `Resource: ${target.title || target.name} (${resolved.value})`,
+        () => readResource({ uri: resolved.value }),
+        resolved.value,
+      );
+      return;
+    }
 
-    return catalog.tools.filter((tool) =>
-      [tool.name, tool.description]
-        .filter(Boolean)
-        .join(" ")
-        .toLowerCase()
-        .includes(q),
-    );
-  }, [catalog.tools, search]);
-
-  const filteredResources = useMemo(() => {
-    const q = search.toLowerCase().trim();
-    if (!q) return catalog.resources;
-
-    return catalog.resources.filter((resource) =>
-      [
-        resource.name,
-        resource.title,
-        resource.uri,
-        resource.description,
-        resource.mimeType,
-      ]
-        .filter(Boolean)
-        .join(" ")
-        .toLowerCase()
-        .includes(q),
-    );
-  }, [catalog.resources, search]);
-
-  const filteredPrompts = useMemo(() => {
-    const q = search.toLowerCase().trim();
-    if (!q) return catalog.prompts;
-
-    return catalog.prompts.filter((prompt) =>
-      [prompt.name, prompt.description]
-        .filter(Boolean)
-        .join(" ")
-        .toLowerCase()
-        .includes(q),
-    );
-  }, [catalog.prompts, search]);
-
-  function resetDialogFields() {
-    setSelectedImage(null);
-    setCategoryInput("");
-    setReceiptIdInput("");
-    setRecentCountInput("5");
-    setTopCountInput("10");
-    setStartDate("");
-    setEndDate("");
-    setSingleDate("");
+    const validation = buildPromptArguments(target, fieldValues);
+    if (!validation.ok) return setFieldErrors(validation.errors);
+    await applyPrompt(target.name, validation.value);
   }
 
-  function closeDialog() {
-    setActiveDialog(null);
-    resetDialogFields();
+  async function runOperation(
+    label: string,
+    operation: () => Promise<unknown>,
+    resourceUri?: string,
+  ) {
+    setSending(true);
+    try {
+      const result = await operation();
+      const receipts = resourceUri
+        ? parseReceiptResource(result, resourceUri)
+        : undefined;
+      setDialogSelection(null);
+      setMessages((current) => [
+        ...current,
+        { role: "user", content: label, toolData: null },
+        {
+          role: "assistant",
+          content: receipts ? "" : formatResult(result),
+          toolData: receipts ? { receipts } : null,
+        },
+      ]);
+    } catch (error) {
+      setFieldErrors({
+        _form: error instanceof Error ? error.message : "MCP operation failed.",
+      });
+    } finally {
+      setSending(false);
+    }
   }
 
-  async function sendMessage(prefilled?: string) {
-    const text = (prefilled ?? input).trim();
+  async function applyPrompt(name: string, args: Record<string, string>) {
+    setSending(true);
+    try {
+      const prompt = await getPrompt({ name, arguments: args });
+      const promptMessages = prompt.messages.map(toChatMessage);
+      const appliedNotice: ChatMessage = {
+        role: "assistant",
+        content: `Applied MCP prompt "${name}" (${prompt.messages.length} message${prompt.messages.length === 1 ? "" : "s"}).`,
+        toolData: null,
+      };
+      const visibleMessages = [...messages, appliedNotice];
+      setMessages(visibleMessages);
+      setDialogSelection(null);
+
+      const response = await postChatRequest({
+        messages: [
+          ...messages.map(({ role, content }) => ({ role, content })),
+          ...promptMessages,
+        ],
+      });
+      setMessages([...visibleMessages, buildAssistantMessage(response)]);
+    } catch (error) {
+      setFieldErrors({
+        _form: error instanceof Error ? error.message : "Prompt retrieval failed.",
+      });
+    } finally {
+      setSending(false);
+    }
+  }
+
+  async function sendMessage() {
+    const text = input.trim();
     if (!text || sending) return;
-
-    const nextMessages: ChatMessage[] = [
-      ...messages,
-      { role: "user", content: text, toolData: null },
-    ];
-
-    const selectedContext = getSelectedContext({
-      selectedTool,
-      selectedResource,
-      selectedPrompt,
-    });
-
-    setMessages(nextMessages);
+    const next = [...messages, { role: "user" as const, content: text, toolData: null }];
+    setMessages(next);
     setInput("");
     setSending(true);
-
     try {
-      const data = await postChatRequest({
-        messages: nextMessages.map((m) => ({
-          role: m.role,
-          content: m.content,
-        })),
-        selectedContext,
+      const result = await postChatRequest({
+        messages: next.map(({ role, content }) => ({ role, content })),
       });
-
-      setMessages([...nextMessages, buildAssistantMessage(data)]);
-    } catch (err) {
+      setMessages([...next, buildAssistantMessage(result)]);
+    } catch (error) {
       setMessages([
-        ...nextMessages,
+        ...next,
         {
           role: "assistant",
-          content:
-            err instanceof Error
-              ? `Error: ${err.message}`
-              : "Something went wrong.",
+          content: error instanceof Error ? `Error: ${error.message}` : "Chat failed.",
           toolData: null,
         },
       ]);
@@ -231,468 +224,182 @@ export default function Home() {
     }
   }
 
-  async function sendStructuredToolMessage(payload: ActionPayload) {
-    if (sending) return;
-
-    const text = buildUserFacingText(payload);
-    const selectedContext = getSelectedContext({
-      selectedTool,
-      selectedResource,
-      selectedPrompt,
-    });
-
-    const nextMessages: ChatMessage[] = [
-      ...messages,
-      { role: "user", content: text, toolData: null },
-    ];
-
-    setMessages(nextMessages);
-    setInput("");
-    setSending(true);
-
-    try {
-      const data = await postChatRequest({
-        messages: nextMessages.map((m) => ({
-          role: m.role,
-          content: m.content,
-        })),
-        selectedContext,
-        actionPayload: payload,
-      });
-
-      setMessages([...nextMessages, buildAssistantMessage(data)]);
-    } catch (err) {
-      setMessages([
-        ...nextMessages,
-        {
-          role: "assistant",
-          content:
-            err instanceof Error
-              ? `Error: ${err.message}`
-              : "Something went wrong.",
-          toolData: null,
-        },
-      ]);
-    } finally {
-      setSending(false);
-    }
+  function handleQuickAction(action: QuickActionType) {
+    const capability = quickActionCapability(action, catalog);
+    if (capability) chooseCapability(capability);
   }
-
-  function handleQuickAction(actionType: QuickActionType) {
-    switch (actionType) {
-      case "summary":
-        setSelectedResource({
-          type: "resource",
-          name: "Receipt Summary",
-          uri: "receipt://summary",
-          mimeType: "application/json",
-        } as ResourceItem);
-        setSelectedTool(null);
-        setSelectedPrompt(null);
-        void sendStructuredToolMessage({
-          action: "top-10-resource",
-          count: 10,
-        });
-        break;
-
-      case "recent-receipts":
-        setSelectedResource({
-          type: "resource",
-          name: "Recent Receipts (Top 10)",
-          uri: "receipt://recent",
-          mimeType: "application/json",
-        } as ResourceItem);
-        setSelectedTool(null);
-        setSelectedPrompt(null);
-        void sendStructuredToolMessage({
-          action: "top-10-resource",
-          count: 10,
-        });
-        break;
-
-      case "create-receipt-from-image":
-      case "receipts-by-category":
-      case "receipts-by-date-range":
-      case "receipts-by-date":
-      case "receipts-by-id":
-      case "recent-count":
-      case "top-10-resource":
-        resetDialogFields();
-        setActiveDialog(actionType);
-        break;
-
-      default:
-        break;
-    }
-  }
-
-  function handleToolSelect(tool: ToolItem) {
-    setSelectedTool(tool);
-    setSelectedResource(null);
-    setSelectedPrompt(null);
-    setOpenMenu(null);
-
-    const dialogType = inferDialogTypeFromLabel(
-      `${tool.name} ${tool.description ?? ""}`,
-    );
-
-    if (dialogType) {
-      resetDialogFields();
-      setActiveDialog(dialogType);
-      return;
-    }
-
-    setInput(`Use the tool "${tool.name}" to help me with: `);
-  }
-
-  function handleResourceSelect(resource: ResourceItem) {
-    setSelectedResource(resource);
-    setSelectedTool(null);
-    setSelectedPrompt(null);
-    setOpenMenu(null);
-
-    const uri = resource.uri?.toLowerCase() ?? "";
-    const label = [
-      resource.title,
-      resource.name,
-      resource.description,
-      resource.uri,
-    ]
-      .filter(Boolean)
-      .join(" ");
-
-    if (uri === "receipt://summary") {
-      void sendMessage("Show the receipt summary.");
-      return;
-    }
-
-    if (uri === "receipt://recent") {
-      void sendMessage("Show the recent receipts.");
-      return;
-    }
-
-    if (uri === "receipt://all") {
-      void sendMessage("Show all receipts.");
-      return;
-    }
-
-    if (uri === "receipt://this-month") {
-      void sendMessage("Show receipts for this month.");
-      return;
-    }
-
-    if (uri.includes("receipt://date/{from}/{to}")) {
-      resetDialogFields();
-      setActiveDialog("receipts-by-date-range");
-      return;
-    }
-
-    if (uri.includes("receipt://recent/{count}")) {
-      resetDialogFields();
-      setActiveDialog("recent-count");
-      return;
-    }
-
-    if (uri.includes("receipt://by-id/{id}")) {
-      resetDialogFields();
-      setActiveDialog("receipts-by-id");
-      return;
-    }
-
-    if (uri.includes("receipt://date/{date}")) {
-      resetDialogFields();
-      setActiveDialog("receipts-by-date");
-      return;
-    }
-
-    if (uri.includes("receipt://category/{category}")) {
-      resetDialogFields();
-      setActiveDialog("receipts-by-category");
-      return;
-    }
-
-    const dialogType = inferDialogTypeFromLabel(label);
-
-    if (dialogType) {
-      resetDialogFields();
-      setActiveDialog(dialogType);
-      return;
-    }
-
-    setInput(
-      `Use the resource "${resource.title || resource.name || resource.uri}" to help me with: `,
-    );
-  }
-
-  function handlePromptSelect(prompt: PromptItem) {
-    setSelectedPrompt(prompt);
-    setSelectedTool(null);
-    setSelectedResource(null);
-    setOpenMenu(null);
-
-    const normalized =
-      `${prompt.name} ${prompt.title ?? ""} ${prompt.description ?? ""}`.toLowerCase();
-
-    if (normalized.includes("date range")) {
-      resetDialogFields();
-      setActiveDialog("receipts-by-date-range");
-      return;
-    }
-
-    if (normalized.includes("extract") && normalized.includes("create")) {
-      resetDialogFields();
-      setActiveDialog("create-receipt-from-image");
-      return;
-    }
-
-    const dialogType = inferDialogTypeFromLabel(
-      `${prompt.name} ${prompt.description ?? ""}`,
-    );
-
-    if (dialogType) {
-      resetDialogFields();
-      setActiveDialog(dialogType);
-      return;
-    }
-
-    setInput(`Use the prompt "${prompt.name}" for: `);
-  }
-
-  async function uploadSelectedImage(file: File): Promise<UploadResponse> {
-    const formData = new FormData();
-    formData.append("file", file);
-
-    const uploadRes = await fetch("/api/images", {
-      method: "POST",
-      body: formData,
-    });
-
-    const data = (await uploadRes.json()) as UploadResponse;
-
-    if (!uploadRes.ok) {
-      throw new Error(data?.error || "Failed to upload image");
-    }
-
-    return data;
-  }
-
-  async function submitDialogAction() {
-    if (!activeDialog) return;
-
-    if (activeDialog === "create-receipt-from-image") {
-      if (!selectedImage) {
-        setMessages((prev) => [
-          ...prev,
-          {
-            role: "assistant",
-            content: "Please select an image first.",
-            toolData: null,
-          },
-        ]);
-        return;
-      }
-
-      try {
-        setSending(true);
-
-        const uploadData = await uploadSelectedImage(selectedImage);
-
-        if (!uploadData?.url || !uploadData?.publicId) {
-          throw new Error(
-            "Upload succeeded but no image URL/public ID was returned.",
-          );
-        }
-
-        closeDialog();
-
-        await sendStructuredToolMessage({
-          action: "create-receipt-from-image",
-          imageUrl: uploadData.url,
-          imagePublicId: uploadData.publicId,
-        });
-      } catch (err) {
-        setSending(false);
-        setMessages((prev) => [
-          ...prev,
-          {
-            role: "assistant",
-            content:
-              err instanceof Error ? `Error: ${err.message}` : "Upload failed.",
-            toolData: null,
-          },
-        ]);
-      }
-
-      return;
-    }
-
-    if (activeDialog === "receipts-by-category") {
-      const category = categoryInput.trim();
-      if (!category) return;
-
-      closeDialog();
-      await sendStructuredToolMessage({
-        action: "receipts-by-category",
-        category,
-      });
-      return;
-    }
-
-    if (activeDialog === "receipts-by-id") {
-      const receiptId = receiptIdInput.trim();
-      if (!receiptId) return;
-
-      closeDialog();
-      await sendStructuredToolMessage({
-        action: "receipts-by-id",
-        receiptId,
-      });
-      return;
-    }
-
-    if (activeDialog === "recent-count") {
-      const count = Number(recentCountInput);
-      if (!Number.isFinite(count) || count <= 0) return;
-
-      closeDialog();
-      await sendStructuredToolMessage({
-        action: "recent-count",
-        count,
-      });
-      return;
-    }
-
-    if (activeDialog === "top-10-resource") {
-      const count = Number(topCountInput);
-      if (!Number.isFinite(count) || count <= 0) return;
-
-      closeDialog();
-      await sendStructuredToolMessage({
-        action: "top-10-resource",
-        count,
-      });
-      return;
-    }
-
-    if (activeDialog === "receipts-by-date") {
-      if (!singleDate) return;
-
-      closeDialog();
-      await sendStructuredToolMessage({
-        action: "receipts-by-date",
-        date: singleDate,
-      });
-      return;
-    }
-
-    if (activeDialog === "receipts-by-date-range") {
-      if (!startDate || !endDate) return;
-
-      closeDialog();
-      await sendStructuredToolMessage({
-        action: "receipts-by-date-range",
-        startDate,
-        endDate,
-      });
-    }
-
-    if (activeDialog === "receipts-paged") {
-      const pageNumber = Number(pageNumberInput);
-      const pageSize = Number(pageSizeInput);
-      if (!Number.isFinite(pageNumber) || pageNumber <= 0) return;
-      if (!Number.isFinite(pageSize) || pageSize <= 0) return;
-
-      closeDialog();
-      await sendStructuredToolMessage({
-        action: "receipts-paged",
-        pageNumber,
-        pageSize,
-      });
-    }
-    if (activeDialog === "receipts-this-month") {
-      closeDialog();
-      await sendStructuredToolMessage({
-        action: "receipts-this-month",
-      });
-    }
-
-  }
-
-  const selectedLabel = selectedTool
-    ? `Tool: ${selectedTool.name}`
-    : selectedResource
-      ? `Resource: ${selectedResource.title || selectedResource.name || selectedResource.uri}`
-      : selectedPrompt
-        ? `Prompt: ${selectedPrompt.name}`
-        : "No item selected";
 
   return (
-    <div className="min-h-screen bg-zinc-50 text-zinc-900">
-      <main className="mx-auto flex min-h-screen max-w-5xl flex-col gap-6 px-4 py-8">
+    <div className="min-h-screen bg-[radial-gradient(circle_at_top,#eef2ff_0,transparent_32rem)] text-zinc-900">
+      <main className="mx-auto flex min-h-screen max-w-6xl flex-col gap-4 px-3 py-4 sm:px-6 sm:py-6 lg:py-8">
         <ChatWindow
           messages={messages}
           sending={sending}
           messagesEndRef={messagesEndRef}
         />
-
-        <div className="sticky bottom-0 z-10 -mx-4 bg-linear-to-t from-zinc-50 via-zinc-50/95 to-transparent px-4 pb-6 pt-4">
-          <QuickActions onAction={handleQuickAction} />
-
-          <div className="mt-4">
+        <div className="sticky bottom-0 z-10 -mx-3 bg-linear-to-t from-zinc-50 via-zinc-50/95 to-transparent px-3 pb-3 pt-3 sm:-mx-6 sm:px-6 sm:pb-4">
+          <QuickActions
+            onAction={handleQuickAction}
+            disabled={loading || sending}
+          />
+          <div className="mt-3">
             <Composer
               input={input}
               setInput={setInput}
               sending={sending}
               onSend={() => void sendMessage()}
-              selectedLabel={selectedLabel}
-              menuRef={menuRef}
+              selection={selection}
               openMenu={openMenu}
               setOpenMenu={setOpenMenu}
               catalog={catalog}
               loading={loading}
-              error={error}
+              error={catalogError}
               search={search}
               setSearch={setSearch}
-              filteredTools={filteredTools}
-              filteredResources={filteredResources}
-              filteredPrompts={filteredPrompts}
-              selectedTool={selectedTool}
-              selectedResource={selectedResource}
-              selectedPrompt={selectedPrompt}
-              onToolSelect={handleToolSelect}
-              onResourceSelect={handleResourceSelect}
-              onPromptSelect={handlePromptSelect}
+              onSelect={chooseCapability}
+              onClearSelection={() => setSelection(null)}
             />
           </div>
         </div>
       </main>
-
-      <DialogRenderer
-        activeDialog={activeDialog}
-        closeDialog={closeDialog}
-        submitDialogAction={() => void submitDialogAction()}
-        selectedImage={selectedImage}
-        setSelectedImage={setSelectedImage}
-        categoryInput={categoryInput}
-        setCategoryInput={setCategoryInput}
-        receiptIdInput={receiptIdInput}
-        setReceiptIdInput={setReceiptIdInput}
-        recentCountInput={recentCountInput}
-        setRecentCountInput={setRecentCountInput}
-        topCountInput={topCountInput}
-        setTopCountInput={setTopCountInput}
-        singleDate={singleDate}
-        setSingleDate={setSingleDate}
-        startDate={startDate}
-        setStartDate={setStartDate}
-        endDate={endDate}
-        setEndDate={setEndDate}
-        pageNumberInput={pageNumberInput}
-        setPageNumberInput={setPageNumberInput}
-        pageSizeInput={pageSizeInput}
-        setPageSizeInput={setPageSizeInput}
+      <CapabilityDialog
+        selection={dialogSelection}
+        fields={fields}
+        values={fieldValues}
+        errors={fieldErrors}
+        mutation={Boolean(mutation)}
+        confirmed={confirmed}
+        busy={sending}
+        onValueChange={(path, value) => {
+          setFieldValues((current) => ({ ...current, [path]: value }));
+          setFieldErrors((current) => ({ ...current, [path]: "", _form: "" }));
+        }}
+        onConfirmedChange={setConfirmed}
+        onClose={() => setDialogSelection(null)}
+        onSubmit={() => void executeCapability()}
       />
     </div>
   );
 }
 
+function getFields(selection: McpSelection | null): CapabilityField[] {
+  if (!selection || selection.kind === "resource") return [];
+  if (selection.kind === "tool") return getToolFields(selection);
+  if (selection.kind === "resourceTemplate") return getTemplateFields(selection);
+  return getPromptFields(selection);
+}
+
+function defaultValues(selection: McpSelection) {
+  const result: Record<string, string> = {};
+  for (const field of getFields(selection)) {
+    if (field.schema.default !== undefined) result[field.path] = String(field.schema.default);
+    else if (field.path.endsWith("pageNumber")) result[field.path] = "1";
+    else if (field.path.endsWith("pageSize")) result[field.path] = "10";
+  }
+  return result;
+}
+
+function toChatMessage(message: McpPromptMessage) {
+  if (message.content.type === "text" && typeof message.content.text === "string") {
+    return { role: message.role, content: message.content.text };
+  }
+  if (message.content.type === "resource") {
+    const resource = message.content.resource;
+    if (resource && typeof resource === "object" && "text" in resource) {
+      return { role: message.role, content: String(resource.text) };
+    }
+  }
+  throw new Error(`Unsupported MCP prompt content type: ${message.content.type}`);
+}
+
+function formatResult(result: unknown): string {
+  return `MCP operation completed.\n\n${JSON.stringify(result, null, 2)}`;
+}
+
+function parseReceiptResource(
+  response: unknown,
+  uri: string,
+): ReceiptCardData[] | undefined {
+  if (!uri.startsWith("receipt://") || !isRecord(response)) return undefined;
+
+  const result = response.result;
+  if (!isRecord(result) || !Array.isArray(result.contents)) return undefined;
+
+  const content = result.contents[0];
+  if (
+    !isRecord(content) ||
+    content.mimeType !== "application/json" ||
+    typeof content.text !== "string"
+  ) {
+    return undefined;
+  }
+
+  try {
+    const parsed: unknown = JSON.parse(content.text);
+    if (!Array.isArray(parsed)) return undefined;
+
+    const receipts = parsed.map(toReceiptCardData);
+    return receipts.every((receipt) => receipt !== undefined)
+      ? receipts
+      : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+function toReceiptCardData(value: unknown): ReceiptCardData | undefined {
+  if (
+    !isRecord(value) ||
+    typeof value.id !== "string" ||
+    typeof value.merchantName !== "string" ||
+    typeof value.purchaseDate !== "string" ||
+    (typeof value.totalAmount !== "number" &&
+      typeof value.totalAmount !== "string") ||
+    typeof value.currency !== "string" ||
+    typeof value.category !== "string" ||
+    (value.imageUrl !== undefined &&
+      value.imageUrl !== null &&
+      typeof value.imageUrl !== "string")
+  ) {
+    return undefined;
+  }
+
+  return {
+    id: value.id,
+    shortId: value.id.slice(0, 8),
+    merchantName: value.merchantName,
+    purchaseDate: value.purchaseDate,
+    totalAmount: value.totalAmount,
+    currency: value.currency,
+    category: value.category,
+    hasImage: Boolean(value.imageUrl),
+    imageUrl: value.imageUrl ?? null,
+  };
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
+}
+
+function quickActionCapability(action: QuickActionType, catalog: CatalogResponse) {
+  const resourceUri: Partial<Record<QuickActionType, string>> = {
+    summary: "receipt://summary",
+    "recent-receipts": "receipt://recent",
+  };
+  const templateUri: Partial<Record<QuickActionType, string>> = {
+    "receipts-by-category": "receipt://category/{category}",
+    "receipts-by-date": "receipt://date/{date}",
+  };
+  if (action === "create-receipt-from-image") {
+    return catalog.tools.find((tool) => tool.name === "create_receipt_from_image");
+  }
+  if (resourceUri[action]) {
+    return catalog.resources.find((resource) => resource.uri === resourceUri[action]);
+  }
+  if (templateUri[action]) {
+    return catalog.resourceTemplates.find(
+      (template) => template.uriTemplate === templateUri[action],
+    );
+  }
+  return undefined;
+}

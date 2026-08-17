@@ -44,6 +44,9 @@ export default function ReceiptListPage() {
     return sum + (Number.isFinite(amount) ? amount : 0);
   }, 0);
 
+
+  console.log("totalSpent test", totalSpent);
+  console.log("Receipts", receipts);
   const primaryCurrency =
     safeReceipts.find(
       (receipt) =>

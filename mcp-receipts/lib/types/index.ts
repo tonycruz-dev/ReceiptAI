@@ -1,46 +1,114 @@
-export type ToolItem = {
-  name: string;
+export type JsonSchema = {
+  type?: string | string[];
+  title?: string;
   description?: string;
-  inputSchema?: unknown;
+  format?: string;
+  default?: unknown;
+  enum?: unknown[];
+  properties?: Record<string, JsonSchema>;
+  required?: string[];
+  items?: JsonSchema;
+  additionalProperties?: boolean | JsonSchema;
 };
 
-export type ResourceItem = {
-  name?: string;
+export type McpTool = {
+  kind: "tool";
+  name: string;
+  title?: string;
+  description?: string;
+  inputSchema: JsonSchema;
+  outputSchema?: JsonSchema;
+  annotations?: {
+    readOnlyHint?: boolean;
+    destructiveHint?: boolean;
+    idempotentHint?: boolean;
+    openWorldHint?: boolean;
+  };
+};
+
+export type McpStaticResource = {
+  kind: "resource";
+  name: string;
   title?: string;
   uri: string;
   description?: string;
   mimeType?: string;
 };
 
-export type PromptItem = {
+export type McpResourceTemplate = {
+  kind: "resourceTemplate";
   name: string;
-  description?: string;
   title?: string;
-  arguments?: Array<{
-    name: string;
-    description?: string;
-    required?: boolean;
-  }>;
+  uriTemplate: string;
+  description?: string;
+  mimeType?: string;
+  variables: string[];
 };
 
+export type McpPromptArgument = {
+  name: string;
+  description?: string;
+  required: boolean;
+};
+
+export type McpPrompt = {
+  kind: "prompt";
+  name: string;
+  title?: string;
+  description?: string;
+  arguments: McpPromptArgument[];
+};
+
+export type McpSelection =
+  | McpTool
+  | McpStaticResource
+  | McpResourceTemplate
+  | McpPrompt;
+
 export type CatalogResponse = {
-  tools: ToolItem[];
-  resources: ResourceItem[];
-  prompts: PromptItem[];
-  resourceTemplates?: Array<{
-    name?: string;
-    uriTemplate?: string;
-    description?: string;
-  }>;
+  endpoint?: string;
+  tools: McpTool[];
+  resources: McpStaticResource[];
+  resourceTemplates: McpResourceTemplate[];
+  prompts: McpPrompt[];
+};
+
+export type ToolCallRequest = {
+  name: string;
+  arguments: Record<string, unknown>;
+  confirmed?: boolean;
+};
+
+export type ResourceReadRequest = {
+  uri: string;
+};
+
+export type PromptGetRequest = {
+  name: string;
+  arguments?: Record<string, string>;
+};
+
+export type McpContent = {
+  type: string;
+  text?: string;
+  data?: string;
+  mimeType?: string;
+  [key: string]: unknown;
+};
+
+export type McpPromptMessage = {
+  role: "user" | "assistant";
+  content: McpContent;
+};
+
+export type PromptGetResponse = {
+  kind: "prompt";
+  name: string;
+  description?: string;
+  messages: McpPromptMessage[];
 };
 
 export type MenuKey = "tools" | "resources" | "prompts" | null;
-
-export type SelectedContext =
-  | { type: "tool"; name: string }
-  | { type: "resource"; uri: string; title: string }
-  | { type: "prompt"; name: string }
-  | null;
 
 export type ReceiptCardData = {
   id: string;
@@ -62,55 +130,15 @@ export type ChatMessage = {
   } | null;
 };
 
-export type ActionPayload =
-  | {
-      action: "create-receipt-from-image";
-      imageUrl: string;
-      imagePublicId: string;
-    }
-  | {
-      action: "receipts-by-category";
-      category: string;
-    }
-  | {
-      action: "receipts-by-id";
-      receiptId: string;
-    }
-  | {
-      action: "recent-count";
-      count: number;
-    }
-  | {
-      action: "top-10-resource";
-      count: number;
-    }
-  | {
-      action: "receipts-by-date-range";
-      startDate: string;
-      endDate: string;
-    }
-  | {
-      action: "receipts-by-date";
-      date: string;
-    }
-    | {
-      action: "receipts-this-month";
-    }
-  | {
-      action: "receipts-paged";
-      pageNumber: number;
-      pageSize: number;
-    };
-
-    export type QuickActionType =
-      | "create-receipt-from-image"
-      | "summary"
-      | "recent-receipts"
-      | "receipts-by-category"
-      | "receipts-by-date-range"
-      | "receipts-by-date"
-      | "receipts-by-id"
-      | "recent-count"
-      | "top-10-resource"
-      | "receipts-this-month"
-      | "receipts-paged";
+export type QuickActionType =
+  | "create-receipt-from-image"
+  | "summary"
+  | "recent-receipts"
+  | "receipts-by-category"
+  | "receipts-by-date-range"
+  | "receipts-by-date"
+  | "receipts-by-id"
+  | "recent-count"
+  | "top-10-resource"
+  | "receipts-this-month"
+  | "receipts-paged";

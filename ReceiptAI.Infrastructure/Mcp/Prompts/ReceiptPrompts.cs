@@ -8,6 +8,7 @@ public static class ReceiptPrompts
 {
 
 	[McpServerPrompt(Name = "receipts_by_date_range",Title = "Retrieve receipts within a date range")]
+	[System.ComponentModel.Description("Build a workflow for retrieving receipts between two dates.")]
 	public static string ReceiptsByDateRangePrompt(string startDate, string endDate) => $"""
 		You are a receipt assistant connected to MCP receipt resources.
 
@@ -41,6 +42,7 @@ public static class ReceiptPrompts
 
 
 	[McpServerPrompt(Name = "receipts_paged_tool",	Title = "Retrieve receipts using tool pagination")]
+	[System.ComponentModel.Description("Build a workflow that retrieves a page of receipts using the paged MCP tool.")]
 	public static string ReceiptsPagedToolPrompt(int pageNumber, int pageSize) => $"""
 		You are a receipt assistant connected to MCP tools.
 
@@ -84,6 +86,7 @@ public static class ReceiptPrompts
 		""";
 
 	[McpServerPrompt(Name = "receipts_paged_resource",	Title = "Retrieve receipts using resource pagination")]
+	[System.ComponentModel.Description("Build a workflow that reads a paginated receipt resource.")]
 	public static string ReceiptsPagedResourcePrompt(int pageNumber, int pageSize) => $"""
 		You are a receipt assistant connected to MCP resources.
 
@@ -123,6 +126,7 @@ public static class ReceiptPrompts
 
 
 	[McpServerPrompt(Name = "create_receipt_from_image", Title = "Create receipt from image")]
+	[System.ComponentModel.Description("Build a workflow for creating a receipt from an image URL.")]
 	public static string CreateReceiptFromImagePrompt(string imageUrl) => $"""
 		You are a receipt assistant connected to MCP receipt tools.
 
@@ -158,6 +162,7 @@ public static class ReceiptPrompts
 		""";
 
 	[McpServerPrompt(Name = "receipts_this_month",	Title = "Retrieve receipts for this month")]
+	[System.ComponentModel.Description("Build a workflow for retrieving receipts from the current month.")]
 	public static string ReceiptsThisMonthPrompt() => """
 		You are a receipt assistant connected to MCP receipt resources.
 
@@ -188,6 +193,7 @@ public static class ReceiptPrompts
 		""";
 
 	[McpServerPrompt(Name = "receipts_by_date", Title = "Retrieve receipts for a specific date")]
+	[System.ComponentModel.Description("Build a workflow for retrieving receipts from one transaction date.")]
 	public static string ReceiptsByDatePrompt(string date) => $"""
 		You are a receipt assistant connected to MCP receipt resources.
 
@@ -220,6 +226,7 @@ public static class ReceiptPrompts
 		""";
 
 	[McpServerPrompt(Name = "receipts_by_category",	Title = "Retrieve receipts by category")]
+	[System.ComponentModel.Description("Build a workflow for retrieving receipts in a category.")]
 	public static string ReceiptsByCategoryPrompt(string category) => $"""
 		You are a receipt assistant connected to MCP receipt resources.
 
@@ -254,6 +261,7 @@ public static class ReceiptPrompts
 
 
 	[McpServerPrompt(Name = "receipt_by_id", Title = "Retrieve a receipt by ID")]
+	[System.ComponentModel.Description("Build a workflow for retrieving one receipt by its UUID.")]
 	public static string ReceiptByIdPrompt(string id) => $"""
 		You are a receipt assistant connected to MCP receipt resources.
 

@@ -3,52 +3,6 @@ export type ChatMessage = {
   content: string;
 };
 
-export type SelectedContext =
-  | { type: "tool"; name: string }
-  | { type: "resource"; uri: string; title?: string }
-  | { type: "prompt"; name: string }
-  | null;
-
-export type ActionPayload =
-  | {
-      action: "create-receipt-from-image";
-      imageUrl: string;
-      imagePublicId: string;
-    }
-  | {
-      action: "receipts-by-category";
-      category: string;
-    }
-  | {
-      action: "receipts-by-id";
-      receiptId: string;
-    }
-  | {
-      action: "recent-count";
-      count: number;
-    }
-  | {
-      action: "top-10-resource";
-      count: number;
-    }
-  | {
-      action: "receipts-by-date-range";
-      startDate: string;
-      endDate: string;
-    }
-  | {
-      action: "receipts-by-date";
-      date: string;
-    }
-  | {
-      action: "receipts-this-month";
-    }
-  | {
-      action: "receipts-paged";
-      pageNumber: number;
-      pageSize: number;
-    };
-
 export type MappedTool = {
   type: "function";
   function: {
@@ -86,7 +40,5 @@ export type ForcedToolCall = {
   };
 };
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export type McpTool = any;
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export type McpPrompt = any;
+export type McpTool = Tool;
+import type { Tool } from "@modelcontextprotocol/client";

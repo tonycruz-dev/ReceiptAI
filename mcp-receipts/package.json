@@ -6,7 +6,9 @@
     "dev": "set NODE_TLS_REJECT_UNAUTHORIZED=0 && next dev --experimental-https",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.90.0",
@@ -15,7 +17,6 @@
     "@copilotkit/react-ui": "^1.56.2",
     "@heroicons/react": "^2.2.0",
     "@modelcontextprotocol/client": "^2.0.0-alpha.2",
-    "@modelcontextprotocol/sdk": "^1.29.0",
     "cloudinary": "^2.9.0",
     "dotenv": "^17.4.2",
     "lucide-react": "^1.8.0",
@@ -26,15 +27,20 @@
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
+    "@testing-library/jest-dom": "^7.0.1",
+    "@testing-library/react": "^16.3.2",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@vitejs/plugin-react": "^6.0.5",
     "autoprefixer": "^10.5.0",
     "cross-env": "^10.1.0",
     "eslint": "^9",
     "eslint-config-next": "16.2.4",
+    "jsdom": "^28.1.0",
     "postcss": "^8.5.12",
     "tailwindcss": "^4.2.4",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^4.1.10"
   }
 }

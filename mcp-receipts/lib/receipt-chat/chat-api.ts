@@ -1,10 +1,17 @@
-import { ChatMessage,  SelectedContext, ActionPayload } from "../types";
+import { ChatMessage } from "../types";
+import type { ReceiptCardData } from "../types";
+
+type ChatApiResponse = {
+  outputText?: string;
+  output_text?: string;
+  toolData?: {
+    receipts?: ReceiptCardData[];
+  } | null;
+};
 
 
 export async function postChatRequest(params: {
   messages: Array<{ role: string; content: string }>;
-  selectedContext: SelectedContext;
-  actionPayload?: ActionPayload;
 }) {
   const res = await fetch("/api/chat", {
     method: "POST",
@@ -30,8 +37,7 @@ export async function postChatRequest(params: {
   return res.json();
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function buildAssistantMessage(data: any): ChatMessage {
+export function buildAssistantMessage(data: ChatApiResponse): ChatMessage {
   return {
     role: "assistant",
     content:

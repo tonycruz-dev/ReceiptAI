@@ -119,7 +119,7 @@ public class McpReceiptTool(IReceiptRepository receiptRepository, IReceiptExtrac
 	}
 
 	[McpServerTool(UseStructuredContent = true,	ReadOnly = false, Name = "delete_receipt")]
-	[Description("Delete a receipt by ID and remove its image from storage if available.")]
+	[Description("Delete a receipt record by ID. This does not remove its stored image.")]
 	public async Task<string> DeleteReceiptAsync(
 	Guid id,
 	CancellationToken ct = default)
